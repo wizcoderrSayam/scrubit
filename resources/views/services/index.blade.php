@@ -7,28 +7,13 @@
     </section>
 
     <div class="mx-auto max-w-7xl space-y-16 px-4 py-14 sm:px-6 lg:px-8">
-        @forelse ($categories as $category)
-            <section aria-labelledby="category-{{ $category->id }}">
-                <div class="flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                        <h2 id="category-{{ $category->id }}" class="text-2xl font-semibold">{{ $category->name }}</h2>
-                        @if ($category->description)
-                            <p class="mt-1 text-ink-700">{{ $category->description }}</p>
-                        @endif
-                    </div>
-                    <a href="{{ route('services.category', $category) }}" class="text-sm font-semibold text-brand-700 hover:text-brand-900">View {{ strtolower($category->name) }} services</a>
-                </div>
-                <div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach ($category->services as $service)
-                        <x-site.service-card :service="$service" :currency="$business['business.currency']" />
-                    @endforeach
-                </div>
-            </section>
-        @empty
+        @if ($categories === [])
             <div class="rounded-2xl border border-dashed border-brand-200 p-10 text-center">
                 <p class="font-semibold">No services are available right now.</p>
                 <p class="mt-1 text-ink-700">Please <a href="{{ route('contact') }}" class="text-brand-700 underline">contact us</a> and we will be happy to help.</p>
             </div>
-        @endforelse
+        @else
+            @include('services.partials.category-section', ['nodes' => $categories, 'depth' => 0])
+        @endif
     </div>
 </x-layouts.public>

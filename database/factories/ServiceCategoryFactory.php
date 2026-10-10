@@ -33,4 +33,14 @@ class ServiceCategoryFactory extends Factory
     {
         return $this->state(fn (array $attributes) => ['is_active' => false]);
     }
+
+    public function forParent(ServiceCategory $parent): static
+    {
+        return $this->state(fn (array $attributes) => ['parent_id' => $parent->id]);
+    }
+
+    public function child(): static
+    {
+        return $this->for(ServiceCategory::factory(), 'parent');
+    }
 }

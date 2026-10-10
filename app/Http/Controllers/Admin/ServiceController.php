@@ -104,7 +104,11 @@ class ServiceController extends Controller
     {
         return [
             'service' => $service,
-            'categories' => ServiceCategory::query()->ordered()->get(),
+            'categoryOptions' => collect(ServiceCategory::flattenTree())
+                ->mapWithKeys(fn (array $row): array => [
+                    $row['category']->id => str_repeat('— ', $row['depth']).$row['path'],
+                ])
+                ->all(),
             'addons' => ServiceAddon::query()->orderBy('sort_order')->orderBy('name')->get(),
             'pricingMethods' => ServicePricingMethod::cases(),
         ];

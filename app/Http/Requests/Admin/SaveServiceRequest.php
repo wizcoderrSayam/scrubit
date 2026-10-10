@@ -27,33 +27,47 @@ class SaveServiceRequest extends AdminRequest
     public function rules(): array
     {
         $service = $this->route('service');
-        $money = ['nullable', 'string', 'regex:/^\d{1,7}(\.\d{1,2})?$/'];
 
         return [
             'service_category_id' => ['required', 'integer', Rule::exists(ServiceCategory::class, 'id')],
+            ...self::contentRules($service?->id, $this->input('pricing_method')),
+            'chat_greeting' => ['nullable', 'string', 'max:500'],
+            'chat_needs_prompt' => ['nullable', 'string', 'max:500'],
+            'suggested_prompts' => ['nullable', 'string', 'max:3000'],
+            'addons' => ['nullable', 'array'],
+            'addons.*' => ['integer', Rule::exists(ServiceAddon::class, 'id')],
+            'featured_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096', 'dimensions:min_width=200,min_height=150,max_width=6000,max_height=6000'],
+            'remove_featured_image' => ['nullable', 'boolean'],
+        ];
+    }
+
+    /**
+     * Shared field rules for the service form and the spreadsheet importer.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public static function contentRules(?int $ignoreId, mixed $pricingMethod): array
+    {
+        $money = ['nullable', 'string', 'regex:/^\d{1,7}(\.\d{1,2})?$/'];
+        $method = is_string($pricingMethod) ? $pricingMethod : null;
+
+        return [
             'name' => ['required', 'string', 'max:120'],
-            'slug' => ['required', 'string', 'max:140', 'alpha_dash', Rule::unique(Service::class, 'slug')->ignore($service?->id)],
+            'slug' => ['required', 'string', 'max:140', 'alpha_dash', Rule::unique(Service::class, 'slug')->ignore($ignoreId)],
             'short_description' => ['required', 'string', 'max:300'],
             'description' => ['nullable', 'string', 'max:20000'],
             'inclusions' => ['nullable', 'string', 'max:5000'],
             'exclusions' => ['nullable', 'string', 'max:5000'],
             'instructions' => ['nullable', 'string', 'max:5000'],
             'pricing_method' => ['required', Rule::enum(ServicePricingMethod::class)],
-            'price' => [...$money, Rule::requiredIf($this->input('pricing_method') === ServicePricingMethod::Fixed->value)],
-            'hourly_rate' => [...$money, Rule::requiredIf($this->input('pricing_method') === ServicePricingMethod::Hourly->value)],
-            'estimated_minutes' => ['nullable', 'integer', 'min:15', 'max:2880', Rule::requiredIf($this->input('pricing_method') === ServicePricingMethod::Hourly->value)],
+            'price' => [...$money, Rule::requiredIf($method === ServicePricingMethod::Fixed->value)],
+            'hourly_rate' => [...$money, Rule::requiredIf($method === ServicePricingMethod::Hourly->value)],
+            'estimated_minutes' => ['nullable', 'integer', 'min:15', 'max:2880', Rule::requiredIf($method === ServicePricingMethod::Hourly->value)],
             'allows_recurring' => ['nullable', 'boolean'],
-            'chat_greeting' => ['nullable', 'string', 'max:500'],
-            'chat_needs_prompt' => ['nullable', 'string', 'max:500'],
-            'suggested_prompts' => ['nullable', 'string', 'max:3000'],
             'seo_title' => ['nullable', 'string', 'max:160'],
             'seo_description' => ['nullable', 'string', 'max:300'],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
-            'addons' => ['nullable', 'array'],
-            'addons.*' => ['integer', Rule::exists(ServiceAddon::class, 'id')],
-            'featured_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096', 'dimensions:min_width=200,min_height=150,max_width=6000,max_height=6000'],
-            'remove_featured_image' => ['nullable', 'boolean'],
         ];
     }
 

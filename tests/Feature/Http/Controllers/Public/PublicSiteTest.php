@@ -58,6 +58,51 @@ class PublicSiteTest extends TestCase
         $this->get(route('services.show', $service))->assertNotFound();
     }
 
+    public function test_services_index_nests_sub_categories_that_have_services(): void
+    {
+        $parent = ServiceCategory::factory()->create(['name' => 'Residential', 'description' => 'Houses and apartments']);
+        $child = ServiceCategory::factory()->forParent($parent)->create(['name' => 'Kitchens']);
+        Service::factory()->for($child, 'category')->create(['name' => 'Oven Cleaning']);
+
+        $this->get(route('services.index'))
+            ->assertOk()
+            ->assertSeeInOrder(['Residential', 'Kitchens', 'Oven Cleaning']);
+    }
+
+    public function test_category_page_shows_breadcrumbs_child_links_and_subtree_services(): void
+    {
+        $parent = ServiceCategory::factory()->create(['name' => 'Residential', 'slug' => 'residential']);
+        $child = ServiceCategory::factory()->forParent($parent)->create(['name' => 'Kitchens', 'slug' => 'kitchens']);
+        Service::factory()->for($child, 'category')->create(['name' => 'Oven Cleaning']);
+
+        $this->get(route('services.category', $parent))
+            ->assertOk()
+            ->assertSee('Oven Cleaning')
+            ->assertSee(route('services.category', $child), false);
+
+        $this->get(route('services.category', $child))
+            ->assertOk()
+            ->assertSee(route('services.category', $parent), false)
+            ->assertSeeInOrder(['Services', 'Residential', 'Kitchens'])
+            ->assertSee('Oven Cleaning');
+    }
+
+    public function test_hidden_ancestor_hides_the_subtree_from_the_public_site(): void
+    {
+        $parent = ServiceCategory::factory()->inactive()->create(['name' => 'Residential', 'slug' => 'residential']);
+        $child = ServiceCategory::factory()->forParent($parent)->create(['name' => 'Kitchens', 'slug' => 'kitchens']);
+        $service = Service::factory()->for($child, 'category')->create(['name' => 'Oven Cleaning', 'slug' => 'oven-cleaning']);
+
+        $this->get(route('services.index'))->assertOk()->assertDontSee('Oven Cleaning')->assertDontSee('Kitchens');
+        $this->get(route('services.category', $child))->assertNotFound();
+        $this->get(route('services.show', $service))->assertNotFound();
+        $this->get(route('booking.start', $service))->assertNotFound();
+        $this->get(route('sitemap'))
+            ->assertOk()
+            ->assertDontSee(route('services.category', $child), false)
+            ->assertDontSee(route('services.show', $service), false);
+    }
+
     public function test_sitemap_lists_active_services_and_published_pages(): void
     {
         $service = Service::factory()->create();

@@ -109,6 +109,10 @@ Route::middleware(['auth', 'verified', 'can:admin'])
         Route::post('/services/{service}/images', [Admin\ServiceImageController::class, 'store'])->name('services.images.store');
         Route::delete('/services/{service}/images/{image}', [Admin\ServiceImageController::class, 'destroy'])->name('services.images.destroy');
         Route::resource('categories', Admin\ServiceCategoryController::class)->except('show');
+        Route::get('/import-export', [Admin\ImportExportController::class, 'index'])->name('import-export.index');
+        Route::get('/import-export/export', [Admin\ImportExportController::class, 'export'])->name('import-export.export');
+        Route::get('/import-export/template', [Admin\ImportExportController::class, 'template'])->name('import-export.template');
+        Route::post('/import-export/import', [Admin\ImportExportController::class, 'import'])->middleware('throttle:sensitive')->name('import-export.import');
         Route::resource('addons', Admin\ServiceAddonController::class)->except('show');
 
         Route::get('/bookings', [Admin\BookingController::class, 'index'])->name('bookings.index');

@@ -6,6 +6,7 @@
             <div class="grid gap-5 sm:grid-cols-2">
                 <x-ui.input name="name" label="Name" :value="$category->name" required />
                 <x-ui.input name="slug" label="URL slug" :value="$category->slug" hint="Leave blank to generate from the name." />
+                <x-ui.select name="parent_id" label="Parent category" :options="$parentOptions" :value="$category->parent_id" placeholder="None (top level)" class="sm:col-span-2" hint="Leave empty for a top-level category. A category cannot sit under itself." />
                 <x-ui.textarea name="description" label="Description" :value="$category->description" rows="3" class="sm:col-span-2" />
                 <x-ui.input name="seo_title" label="SEO title" :value="$category->seo_title" />
                 <x-ui.input name="sort_order" label="Sort order" type="number" min="0" :value="$category->sort_order ?? 0" />

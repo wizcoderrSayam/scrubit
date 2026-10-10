@@ -22,6 +22,7 @@ class AdminAuthorizationTest extends TestCase
     {
         return collect([
             'admin.dashboard', 'admin.services.index', 'admin.services.create', 'admin.categories.index', 'admin.categories.create',
+            'admin.import-export.index',
             'admin.addons.index', 'admin.addons.create', 'admin.bookings.index', 'admin.quotes.index', 'admin.payments.index',
             'admin.customers.index', 'admin.enquiries.index', 'admin.content.home.edit', 'admin.pages.index', 'admin.faqs.index',
             'admin.faqs.create', 'admin.testimonials.index', 'admin.testimonials.create', 'admin.email-templates.index',
