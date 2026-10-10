@@ -6,6 +6,7 @@ use App\Http\Responses\HomeRedirectResponse;
 use App\Models\User;
 use App\Services\Chat\ChatResponder;
 use App\Services\Chat\ScriptedResponder;
+use App\Services\MailSettingsApplier;
 use App\Services\SettingsService;
 use App\View\Composers\BusinessComposer;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -46,5 +47,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('chat', fn (Request $request) => Limit::perMinute(40)->by($request->ip()));
         RateLimiter::for('sensitive', fn (Request $request) => Limit::perMinute(15)->by($request->user()?->getKey() ?? $request->ip()));
         RateLimiter::for('webhooks', fn (Request $request) => Limit::perMinute(300)->by($request->ip()));
+
+        $this->app->make(MailSettingsApplier::class)->apply();
     }
 }

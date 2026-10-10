@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\UpdateBusinessSettingsRequest;
 use App\Services\SettingsService;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
@@ -26,6 +27,7 @@ class BusinessSettingsController extends Controller
             'currencies' => UpdateBusinessSettingsRequest::CURRENCIES,
             'addonRate' => Money::toDecimal((int) $this->settings->get('addon_note.rate_cents', 0)),
             'addonNotePreview' => $this->settings->addonNote(),
+            'hasMailPassword' => filled($this->settings->get('mail.password')),
         ]);
     }
 
@@ -34,7 +36,15 @@ class BusinessSettingsController extends Controller
      */
     public function update(UpdateBusinessSettingsRequest $request): RedirectResponse
     {
-        $this->settings->set($request->settings());
+        $values = $request->settings();
+
+        // A blank password field means "keep what's already saved", not "clear it".
+        $password = $request->validated('mail_password');
+        if (filled($password)) {
+            $values['mail.password'] = Crypt::encryptString($password);
+        }
+
+        $this->settings->set($values);
 
         return to_route('admin.settings.business.edit')->with('status', 'settings-saved');
     }

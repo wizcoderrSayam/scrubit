@@ -55,6 +55,18 @@
             </div>
         </x-ui.card>
 
+        <x-ui.card title="Email delivery (SMTP)" description="Used to send booking emails to customers and your team. For Gmail, use an App Password from myaccount.google.com/apppasswords, not your regular password.">
+            <div class="grid gap-5 sm:grid-cols-2">
+                <x-ui.input name="mail_host" label="SMTP host" :value="$settings['mail.host']" required />
+                <x-ui.input name="mail_port" label="SMTP port" type="number" min="1" max="65535" :value="$settings['mail.port']" required />
+                <x-ui.input name="mail_username" label="Username" :value="$settings['mail.username']" />
+                <x-ui.input name="mail_password" label="Password" type="password"
+                    :hint="$hasMailPassword ? 'A password is already saved. Leave blank to keep it.' : 'No password saved yet.'" />
+                <x-ui.input name="mail_from_address" label="\"From\" address" type="email" :value="$settings['mail.from_address']"
+                    hint="Defaults to the username above when left blank." class="sm:col-span-2" />
+            </div>
+        </x-ui.card>
+
         <x-ui.card title="Social media" description="Leave blank to hide a link.">
             <div class="grid gap-5">
                 <x-ui.input name="social_facebook" label="Facebook URL" type="url" :value="$settings['social.facebook']" placeholder="https://" />

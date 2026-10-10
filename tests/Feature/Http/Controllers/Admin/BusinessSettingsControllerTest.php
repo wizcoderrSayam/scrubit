@@ -6,6 +6,7 @@ use App\Models\BusinessSetting;
 use App\Models\User;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 use Tests\TestCase;
@@ -26,6 +27,10 @@ class BusinessSettingsControllerTest extends TestCase
             'business_email' => 'Info@scrubit.ca',
             'business_location' => 'Canada',
             'business_currency' => 'CAD',
+            'mail_host' => 'smtp.gmail.com',
+            'mail_port' => '587',
+            'mail_username' => 'business@scrubit.ca',
+            'mail_from_address' => 'business@scrubit.ca',
             'social_facebook' => '',
             'social_instagram' => 'https://instagram.com/scrubit',
             'social_youtube' => '',
@@ -111,10 +116,40 @@ class BusinessSettingsControllerTest extends TestCase
                 'business_phone',
                 'business_email',
                 'business_currency',
+                'mail_host',
+                'mail_port',
                 'addon_note_text',
                 'addon_note_rate',
                 'cancellation_cutoff_hours',
             ]);
+    }
+
+    public function test_admin_saves_smtp_credentials_with_the_password_encrypted(): void
+    {
+        $this->actingAs(User::factory()->admin()->create())
+            ->put(route('admin.settings.business.update'), [...$this->validPayload(), 'mail_password' => 'app-password-secret'])
+            ->assertRedirect(route('admin.settings.business.edit'));
+
+        $settings = app(SettingsService::class);
+        $settings->flush();
+        $this->assertSame('smtp.gmail.com', $settings->get('mail.host'));
+        $this->assertSame(587, $settings->get('mail.port'));
+        $stored = $settings->get('mail.password');
+        $this->assertNotSame('app-password-secret', $stored);
+        $this->assertSame('app-password-secret', Crypt::decryptString($stored));
+    }
+
+    public function test_leaving_the_password_blank_keeps_the_previously_saved_one(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin)->put(route('admin.settings.business.update'), [...$this->validPayload(), 'mail_password' => 'first-secret']);
+
+        $this->actingAs($admin)->put(route('admin.settings.business.update'), [...$this->validPayload(), 'mail_username' => 'changed@scrubit.ca']);
+
+        $settings = app(SettingsService::class);
+        $settings->flush();
+        $this->assertSame('changed@scrubit.ca', $settings->get('mail.username'));
+        $this->assertSame('first-secret', Crypt::decryptString($settings->get('mail.password')));
     }
 
     public function test_forbids_customers_from_sending_a_test_email(): void
