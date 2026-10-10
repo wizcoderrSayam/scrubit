@@ -23,10 +23,10 @@
             ['label' => 'Email templates', 'route' => 'admin.email-templates.index', 'active' => 'admin.email-templates.*'],
         ],
         'Settings' => [
-            ['label' => 'Business', 'route' => 'admin.settings.business.edit', 'active' => 'admin.settings.business.*'],
+            ['label' => 'Business settings', 'route' => 'admin.settings.business.edit', 'active' => 'admin.settings.business.*'],
             ['label' => 'Tax rates', 'route' => 'admin.settings.tax.index', 'active' => 'admin.settings.tax.*'],
             ['label' => 'Availability', 'route' => 'admin.settings.availability.edit', 'active' => 'admin.settings.availability.*'],
-            ['label' => 'Payments', 'route' => 'admin.settings.payments', 'active' => 'admin.settings.payments'],
+            ['label' => 'Payment settings', 'route' => 'admin.settings.payments', 'active' => 'admin.settings.payments'],
         ],
     ];
 @endphp
@@ -61,12 +61,9 @@
                 </button>
             </div>
 
-            <nav class="flex-1 space-y-4 overflow-y-auto px-3 pb-4 text-sm" aria-label="Admin sections">
-                @foreach ($navigation as $group => $items)
-                    <div class="space-y-0.5">
-                        @unless ($loop->first)
-                            <p class="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">{{ $group }}</p>
-                        @endunless
+            <nav class="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4 text-sm" aria-label="Admin sections">
+                @foreach ($navigation as $items)
+                    <div class="contents">
                         @foreach ($items as $item)
                             @php($isActive = request()->routeIs($item['active']))
                             <a href="{{ route($item['route']) }}"
