@@ -75,16 +75,62 @@ class ContentAndSettingsTest extends TestCase
 
     public function test_homepage_content_is_editable(): void
     {
-        $this->actingAs($this->admin)->put(route('admin.content.home.update'), [
+        $this->actingAs($this->admin)->put(route('admin.content.home.update'), $this->homepageContent())->assertRedirect();
+
+        app(SettingsService::class)->flush();
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Spotless every time')
+            ->assertSee('We clean homes and offices.')
+            ->assertSee('Fully insured team')
+            ->assertDontSee('Numbers That Speak');
+    }
+
+    public function test_homepage_shows_every_stat_after_one_count_is_saved_above_zero(): void
+    {
+        $this->actingAs($this->admin)->put(route('admin.content.home.update'), $this->homepageContent([
+            'houses_cleaned' => 12,
+        ]))->assertRedirect();
+
+        app(SettingsService::class)->flush();
+
+        $this->assertSame(12, app(SettingsService::class)->get('home.stats.houses_cleaned'));
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Numbers That Speak')
+            ->assertSee('Houses Cleaned')
+            ->assertSee('Happy Customers')
+            ->assertSee('Expert Cleaners')
+            ->assertSee('Years of Experience')
+            ->assertSee('12+');
+    }
+
+    public function test_homepage_stats_reject_a_negative_count(): void
+    {
+        $this->actingAs($this->admin)->put(route('admin.content.home.update'), $this->homepageContent([
+            'houses_cleaned' => -1,
+        ]))->assertSessionHasErrors([
+            'houses_cleaned' => 'The houses cleaned field must be at least 0.',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function homepageContent(array $overrides = []): array
+    {
+        return array_merge([
             'hero_eyebrow' => 'Spotless every time',
             'intro' => 'We clean homes and offices.',
             'cta_heading' => 'Book today',
             'cta_text' => 'Fast, friendly service.',
             'why_items' => "Insured | Fully insured team\nFlexible | Plans that fit",
-        ])->assertRedirect();
-
-        app(SettingsService::class)->flush();
-        $this->get(route('home'))->assertSee('Spotless every time')->assertSee('Fully insured team');
+            'houses_cleaned' => 0,
+            'happy_customers' => 0,
+            'expert_cleaners' => 0,
+            'years_experience' => 0,
+        ], $overrides);
     }
 
     public function test_email_templates_can_be_edited_and_restored(): void

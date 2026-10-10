@@ -54,6 +54,10 @@ return [
         'home.intro' => 'Scrubit is a professional cleaning company committed to delivering reliable, high-quality cleaning services for homes and businesses. We believe a clean space creates comfort, productivity, and peace of mind.',
         'home.cta_heading' => 'Ready for a Cleaner, Healthier Space?',
         'home.cta_text' => 'Relax while Scrubit provides trusted, eco-friendly cleaning services.',
+        'home.stats.houses_cleaned' => 0,
+        'home.stats.happy_customers' => 0,
+        'home.stats.expert_cleaners' => 0,
+        'home.stats.years_experience' => 0,
         'home.why_items' => [
             ['title' => 'Professional & Trained Staff', 'body' => 'Trained, insured, and background-checked.'],
             ['title' => 'Flexible & Customized Plans', 'body' => 'Cleaning services tailored to you.'],

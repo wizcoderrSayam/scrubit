@@ -123,6 +123,24 @@ class Service extends Model
     }
 
     /**
+     * Active services listed under at least one publicly visible category.
+     *
+     * @return Collection<int, self>
+     */
+    public static function visibleCatalog(): Collection
+    {
+        return CatalogCache::models('home.services.tree', self::class, function () {
+            $tree = ServiceCategory::query()->get()->keyBy(fn (ServiceCategory $category): int => (int) $category->id);
+            $visibleIds = $tree
+                ->filter(fn (ServiceCategory $category): bool => $category->isVisibleInTree($tree))
+                ->map(fn (ServiceCategory $category): int => (int) $category->id)
+                ->all();
+
+            return self::query()->active()->inCategories($visibleIds)->ordered()->get();
+        });
+    }
+
+    /**
      * Active, and listed under at least one category that is visible in the tree.
      *
      * @param  Collection<int, ServiceCategory>|null  $tree

@@ -2,8 +2,8 @@
     :title="$category->seo_title ?: $category->name.' cleaning services'"
     :description="$category->seo_description ?: ($category->description ?: 'Browse '.$category->name.' cleaning services.')"
 >
-    <section class="bg-brand-50">
-        <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+    <section class="border-b border-brand-100">
+        <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
             <nav aria-label="Breadcrumb" class="text-sm text-ink-500">
                 <a href="{{ route('services.index') }}" class="hover:text-brand-700">Services</a>
                 @foreach ($ancestors as $ancestor)
@@ -12,14 +12,14 @@
                 @endforeach
                 <span aria-hidden="true">/</span> {{ $category->name }}
             </nav>
-            <h1 class="mt-3 text-4xl font-bold">{{ $category->name }}</h1>
+            <h1 class="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">{{ $category->name }}</h1>
             @if ($category->description)
                 <p class="mt-3 max-w-2xl text-lg text-ink-700">{{ $category->description }}</p>
             @endif
         </div>
     </section>
 
-    <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         @if ($children->isNotEmpty())
             <nav aria-label="Sub-categories" class="mb-10">
                 <h2 class="text-sm font-semibold uppercase tracking-wide text-ink-500">Sub-categories</h2>

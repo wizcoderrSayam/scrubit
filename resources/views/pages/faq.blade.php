@@ -1,7 +1,7 @@
 <x-layouts.public title="Frequently asked questions" description="Answers to common questions about booking, quotes and payments with {{ $business['business.name'] }}.">
-    <section class="bg-brand-50">
-        <div class="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-            <h1 class="text-4xl font-bold">Frequently asked questions</h1>
+    <section class="border-b border-brand-100">
+        <div class="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
+            <h1 class="text-4xl font-semibold tracking-tight sm:text-5xl">Frequently asked questions</h1>
             <p class="mt-3 text-lg text-ink-700">Can't find what you are looking for? <a href="{{ route('contact') }}" class="font-semibold text-brand-700 underline">Get in touch</a>.</p>
         </div>
     </section>

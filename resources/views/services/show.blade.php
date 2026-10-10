@@ -24,15 +24,15 @@
 >
     <script type="application/ld+json">@json($structuredData, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG)</script>
 
-    <section class="bg-brand-50">
-        <div class="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
+    <section class="border-b border-brand-100">
+        <div class="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-2 lg:px-8">
             <div>
                 <nav aria-label="Breadcrumb" class="text-sm text-ink-500">
                     <a href="{{ route('services.index') }}" class="hover:text-brand-700">Services</a>
                     <span aria-hidden="true">/</span>
                     <a href="{{ route('services.category', $service->category) }}" class="hover:text-brand-700">{{ $service->category->name }}</a>
                 </nav>
-                <h1 class="mt-3 text-4xl font-bold">{{ $service->name }}</h1>
+                <h1 class="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">{{ $service->name }}</h1>
                 <p class="mt-4 text-lg leading-relaxed text-ink-700">{{ $service->short_description }}</p>
                 <dl class="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm">
                     <div>
@@ -65,7 +65,7 @@
         </div>
     </section>
 
-    <div class="mx-auto grid max-w-7xl gap-12 px-4 py-14 sm:px-6 lg:grid-cols-3 lg:px-8">
+    <div class="mx-auto grid max-w-7xl gap-12 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-3 lg:px-8">
         <div class="space-y-10 lg:col-span-2">
             @if ($service->description)
                 <section class="prose-content">

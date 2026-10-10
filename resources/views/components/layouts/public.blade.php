@@ -6,7 +6,7 @@
         @include('partials.head', compact('business', 'title', 'description', 'canonical', 'noindex'))
     </head>
     <body class="flex min-h-screen flex-col">
-        <x-site.header :business="$business" />
+        <x-site.marketing-header :business="$business" />
 
         <main id="main" class="flex-1">
             @if (session('status') || $errors->has('booking'))
@@ -21,6 +21,6 @@
             {{ $slot }}
         </main>
 
-        <x-site.footer :business="$business" />
+        <x-site.marketing-footer :business="$business" />
     </body>
 </html>

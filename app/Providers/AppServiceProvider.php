@@ -9,6 +9,7 @@ use App\Services\Chat\ScriptedResponder;
 use App\Services\MailSettingsApplier;
 use App\Services\SettingsService;
 use App\View\Composers\BusinessComposer;
+use App\View\Composers\MarketingNavigationComposer;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -42,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('admin', fn (User $user): bool => $user->isAdmin());
 
         View::composer(['components.layouts.*', 'home', 'pages.*', 'services.*', 'bookings.*', 'checkout.*', 'booking.*', 'account.*'], BusinessComposer::class);
+        View::composer(['components.site.marketing-header', 'components.site.marketing-footer'], MarketingNavigationComposer::class);
 
         RateLimiter::for('enquiries', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('chat', fn (Request $request) => Limit::perMinute(40)->by($request->ip()));

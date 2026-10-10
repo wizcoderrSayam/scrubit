@@ -1,29 +1,31 @@
 @php($phoneHref = 'tel:'.preg_replace('/[^0-9+]/', '', $business['business.phone']))
 
 <x-layouts.public title="Contact us" description="Get in touch with {{ $business['business.name'] }} by phone, email or our contact form.">
-    <section class="bg-brand-50">
-        <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <h1 class="text-4xl font-bold">Contact us</h1>
-            <p class="mt-3 max-w-2xl text-lg text-ink-700">Questions about a service or an existing booking? We are happy to help.</p>
+    <section class="border-b border-brand-100">
+        <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+            <h1 class="text-4xl font-semibold tracking-tight sm:text-5xl">Contact us</h1>
+            <p class="mt-4 max-w-2xl text-lg text-ink-700">Questions about a service or an existing booking? We are happy to help.</p>
         </div>
     </section>
 
-    <div class="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-3 lg:px-8">
-        <aside class="space-y-6">
-            <div class="rounded-2xl border border-brand-100 p-6">
-                <h2 class="font-semibold">Call us</h2>
-                <a href="{{ $phoneHref }}" class="mt-1 block text-lg font-semibold text-brand-800 hover:text-brand-600">{{ $business['business.phone'] }}</a>
-            </div>
-            <div class="rounded-2xl border border-brand-100 p-6">
-                <h2 class="font-semibold">Email</h2>
-                <a href="mailto:{{ $business['business.email'] }}" class="mt-1 block text-lg font-semibold text-brand-800 hover:text-brand-600">{{ $business['business.email'] }}</a>
-            </div>
-            @if ($business['business.location'])
-                <div class="rounded-2xl border border-brand-100 p-6">
-                    <h2 class="font-semibold">Location</h2>
-                    <p class="mt-1 text-ink-700">{{ $business['business.location'] }}</p>
+    <div class="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-3 lg:px-8">
+        <aside>
+            <dl class="divide-y divide-brand-100 border-y border-brand-100">
+                <div class="py-5">
+                    <dt class="text-sm text-ink-500">Call us</dt>
+                    <dd class="mt-1 text-lg font-semibold"><a href="{{ $phoneHref }}" class="text-brand-800 hover:text-brand-600">{{ $business['business.phone'] }}</a></dd>
                 </div>
-            @endif
+                <div class="py-5">
+                    <dt class="text-sm text-ink-500">Email</dt>
+                    <dd class="mt-1 text-lg font-semibold"><a href="mailto:{{ $business['business.email'] }}" class="text-brand-800 hover:text-brand-600">{{ $business['business.email'] }}</a></dd>
+                </div>
+                @if ($business['business.location'])
+                    <div class="py-5">
+                        <dt class="text-sm text-ink-500">Location</dt>
+                        <dd class="mt-1 text-ink-700">{{ $business['business.location'] }}</dd>
+                    </div>
+                @endif
+            </dl>
         </aside>
 
         <x-ui.card title="Send us a message" class="lg:col-span-2">

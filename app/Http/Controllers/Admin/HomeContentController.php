@@ -29,6 +29,10 @@ class HomeContentController extends Controller
             'cta_heading' => ['required', 'string', 'max:160'],
             'cta_text' => ['required', 'string', 'max:300'],
             'why_items' => ['nullable', 'string', 'max:3000'],
+            'houses_cleaned' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'happy_customers' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'expert_cleaners' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'years_experience' => ['required', 'integer', 'min:0', 'max:1000000'],
         ]);
 
         $whyItems = collect(preg_split('/\r\n|\r|\n/', (string) ($validated['why_items'] ?? '')))
@@ -45,6 +49,10 @@ class HomeContentController extends Controller
             'home.cta_heading' => $validated['cta_heading'],
             'home.cta_text' => $validated['cta_text'],
             'home.why_items' => $whyItems,
+            'home.stats.houses_cleaned' => (int) $validated['houses_cleaned'],
+            'home.stats.happy_customers' => (int) $validated['happy_customers'],
+            'home.stats.expert_cleaners' => (int) $validated['expert_cleaners'],
+            'home.stats.years_experience' => (int) $validated['years_experience'],
         ]);
 
         return to_route('admin.content.home.edit')->with('status', 'Homepage content saved.');
