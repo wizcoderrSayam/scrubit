@@ -21,13 +21,25 @@ class SaveAddonRequest extends AdminRequest
      */
     public function rules(): array
     {
+        return self::contentRules($this->route('addon')?->id, $this->input('pricing_method'));
+    }
+
+    /**
+     * Shared field rules for the add-on form and the spreadsheet importer.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public static function contentRules(?int $ignoreId, mixed $pricingMethod): array
+    {
+        $method = is_string($pricingMethod) ? $pricingMethod : null;
+
         return [
             'name' => ['required', 'string', 'max:120'],
-            'slug' => ['required', 'string', 'max:140', 'alpha_dash', Rule::unique(ServiceAddon::class, 'slug')->ignore($this->route('addon')?->id)],
+            'slug' => ['required', 'string', 'max:140', 'alpha_dash', Rule::unique(ServiceAddon::class, 'slug')->ignore($ignoreId)],
             'description' => ['nullable', 'string', 'max:300'],
             'pricing_method' => ['required', Rule::enum(AddonPricingMethod::class)],
             'price' => [
-                Rule::requiredIf($this->input('pricing_method') !== AddonPricingMethod::Quote->value),
+                Rule::requiredIf($method !== AddonPricingMethod::Quote->value),
                 'nullable', 'string', 'regex:/^\d{1,7}(\.\d{1,2})?$/',
             ],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],

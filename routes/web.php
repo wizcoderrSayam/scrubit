@@ -104,6 +104,9 @@ Route::middleware(['auth', 'verified', 'can:admin'])
     ->group(function () {
         Route::get('/', Admin\DashboardController::class)->name('dashboard');
 
+        Route::get('/services/export', [Admin\ServiceController::class, 'export'])->name('services.export');
+        Route::get('/services/template', [Admin\ServiceController::class, 'template'])->name('services.template');
+        Route::post('/services/import', [Admin\ServiceController::class, 'import'])->middleware('throttle:sensitive')->name('services.import');
         Route::resource('services', Admin\ServiceController::class)->except('show');
         Route::post('/services/{service}/toggle', [Admin\ServiceController::class, 'toggle'])->name('services.toggle');
         Route::post('/services/{service}/images', [Admin\ServiceImageController::class, 'store'])->name('services.images.store');

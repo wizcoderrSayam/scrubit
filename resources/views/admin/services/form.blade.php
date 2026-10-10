@@ -15,7 +15,7 @@
                 <div class="grid gap-5 sm:grid-cols-2">
                     <x-ui.input name="name" label="Service name" :value="$service->name" required />
                     <x-ui.input name="slug" label="URL slug" :value="$service->slug" hint="Leave blank to generate from the name. Used in /services/{slug}." />
-                    <x-ui.select name="service_category_id" label="Category" :options="$categories->pluck('name', 'id')->all()" :value="$service->service_category_id" placeholder="Choose a category" required />
+                    <x-ui.select name="service_category_id" label="Category" :options="$categoryOptions" :value="$service->service_category_id" placeholder="Choose a category" required />
                     <x-ui.input name="sort_order" label="Sort order" type="number" min="0" :value="$service->sort_order ?? 0" />
                     <x-ui.textarea name="short_description" label="Short description" :value="$service->short_description" rows="2" required class="sm:col-span-2" hint="Shown on service cards and as the chat introduction." />
                     <x-ui.textarea name="description" label="Detailed description (Markdown)" :value="$service->description" rows="6" class="sm:col-span-2" />

@@ -13,7 +13,7 @@ class SeoController extends Controller
 {
     public function sitemap(): Response
     {
-        $xml = CatalogCache::remember('sitemap', function (): string {
+        $xml = CatalogCache::remember('sitemap.tree', function (): string {
             $urls = collect([
                 ['loc' => route('home'), 'lastmod' => null],
                 ['loc' => route('services.index'), 'lastmod' => null],
@@ -23,11 +23,21 @@ class SeoController extends Controller
                 ['loc' => route('faq'), 'lastmod' => null],
             ]);
 
-            ServiceCategory::query()->active()->ordered()->get()->each(function (ServiceCategory $category) use ($urls): void {
-                $urls->push(['loc' => route('services.category', $category), 'lastmod' => $category->updated_at]);
-            });
+            $categories = ServiceCategory::query()->get();
+            $tree = $categories->keyBy(fn (ServiceCategory $category): int => (int) $category->id);
+            $visibleIds = $categories
+                ->filter(fn (ServiceCategory $category): bool => $category->isVisibleInTree($tree))
+                ->map(fn (ServiceCategory $category): int => (int) $category->id)
+                ->all();
 
-            Service::query()->active()->whereHas('category', fn ($query) => $query->active())->ordered()->get()
+            $categories
+                ->filter(fn (ServiceCategory $category): bool => in_array((int) $category->id, $visibleIds, true))
+                ->sortBy(fn (ServiceCategory $category): string => sprintf('%08d-%s', $category->sort_order, $category->name))
+                ->each(function (ServiceCategory $category) use ($urls): void {
+                    $urls->push(['loc' => route('services.category', $category), 'lastmod' => $category->updated_at]);
+                });
+
+            Service::query()->active()->whereIn('service_category_id', $visibleIds)->ordered()->get()
                 ->each(function (Service $service) use ($urls): void {
                     $urls->push(['loc' => route('services.show', $service), 'lastmod' => $service->updated_at]);
                 });

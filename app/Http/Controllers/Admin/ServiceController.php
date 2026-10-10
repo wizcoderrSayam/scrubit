@@ -4,15 +4,22 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\ServicePricingMethod;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ExportSpreadsheetRequest;
+use App\Http\Requests\Admin\ImportServiceRequest;
 use App\Http\Requests\Admin\SaveServiceRequest;
 use App\Models\Service;
 use App\Models\ServiceAddon;
 use App\Models\ServiceCategory;
 use App\Services\ImageUploader;
+use App\Services\ImportExport\CatalogExporter;
+use App\Services\ImportExport\ImportException;
+use App\Services\ImportExport\ServiceImporter;
+use App\Services\ImportExport\SpreadsheetWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ServiceController extends Controller
 {
@@ -29,6 +36,35 @@ class ServiceController extends Controller
             ->withQueryString();
 
         return view('admin.services.index', ['services' => $services]);
+    }
+
+    public function export(ExportSpreadsheetRequest $request, CatalogExporter $exporter, SpreadsheetWriter $writer): StreamedResponse
+    {
+        $format = $request->validated('format');
+
+        return $writer->download('services-'.now()->toDateString().'.'.$format, $exporter->headers(), $exporter->rows());
+    }
+
+    public function template(CatalogExporter $exporter, SpreadsheetWriter $writer): StreamedResponse
+    {
+        return $writer->download('services-template.csv', $exporter->headers(), []);
+    }
+
+    public function import(ImportServiceRequest $request, ServiceImporter $importer): RedirectResponse
+    {
+        $file = $request->file('file');
+
+        try {
+            $result = $importer->import($file->getPathname(), $file->getClientOriginalExtension());
+        } catch (ImportException $exception) {
+            return back()->withErrors(['file' => $exception->getMessage()])->withInput();
+        }
+
+        if ($result->failed()) {
+            return back()->with('import_errors', $result->errors)->withInput();
+        }
+
+        return back()->with('status', "Imported {$result->created} new services and updated {$result->updated}.");
     }
 
     public function create(): View
@@ -104,7 +140,11 @@ class ServiceController extends Controller
     {
         return [
             'service' => $service,
-            'categories' => ServiceCategory::query()->ordered()->get(),
+            'categoryOptions' => collect(ServiceCategory::flattenTree())
+                ->mapWithKeys(fn (array $row): array => [
+                    $row['category']->id => str_repeat('— ', $row['depth']).$row['path'],
+                ])
+                ->all(),
             'addons' => ServiceAddon::query()->orderBy('sort_order')->orderBy('name')->get(),
             'pricingMethods' => ServicePricingMethod::cases(),
         ];
