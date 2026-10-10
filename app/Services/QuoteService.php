@@ -8,6 +8,11 @@ use App\Exceptions\BookingActionException;
 use App\Models\Booking;
 use App\Models\BookingQuote;
 use App\Models\User;
+use App\Notifications\Admin\QuoteAcceptedNotification;
+use App\Notifications\Admin\QuoteExpiredNotification as AdminQuoteExpiredNotification;
+use App\Notifications\Admin\QuoteSentCopyNotification;
+use App\Notifications\Admin\RequoteRequestedNotification;
+use App\Notifications\Customer\QuoteExpiredNotification;
 use App\Notifications\Customer\QuoteSentNotification;
 use App\Services\Pricing\BookingPricingService;
 use Carbon\CarbonInterface;
@@ -83,6 +88,7 @@ class QuoteService
 
         $booking->unsetRelation('currentQuote');
         $this->notifier->customer($booking, new QuoteSentNotification($booking, $quote, $this->notifier->customerUrl($booking)));
+        $this->notifier->admins(new QuoteSentCopyNotification($booking, $quote));
 
         return $quote;
     }
@@ -94,7 +100,9 @@ class QuoteService
      */
     public function accept(Booking $booking): BookingQuote
     {
-        return DB::transaction(function () use ($booking): BookingQuote {
+        $justAccepted = false;
+
+        $quote = DB::transaction(function () use ($booking, &$justAccepted): BookingQuote {
             $quote = $booking->currentQuote()->lockForUpdate()->first();
 
             if ($booking->status !== BookingStatus::AwaitingQuotePayment || $quote === null) {
@@ -107,10 +115,18 @@ class QuoteService
 
             if ($quote->status === QuoteStatus::Sent) {
                 $quote->forceFill(['status' => QuoteStatus::Accepted, 'accepted_at' => now()])->save();
+                $justAccepted = true;
             }
 
             return $quote;
         });
+
+        // Only notify on the real transition, not on a repeat "accept & pay" click (e.g. after a retry).
+        if ($justAccepted) {
+            $this->notifier->admins(new QuoteAcceptedNotification($booking, $quote));
+        }
+
+        return $quote;
     }
 
     /**
@@ -124,20 +140,39 @@ class QuoteService
         BookingQuote::query()
             ->whereIn('status', [QuoteStatus::Sent, QuoteStatus::Accepted])
             ->where('expires_at', '<=', now())
-            ->with('booking')
+            ->with('booking.user')
             ->chunkById(100, function ($quotes) use (&$expired): void {
                 foreach ($quotes as $quote) {
-                    if ($quote->booking->hasOpenPayment()) {
+                    $didExpire = DB::transaction(function () use ($quote): bool {
+                        // Re-lock and re-check: a payment may have started checkout since this quote was selected above.
+                        $locked = Booking::query()->lockForUpdate()->find($quote->booking_id);
+
+                        if ($locked === null || $locked->hasOpenPayment()) {
+                            return false;
+                        }
+
+                        $lockedQuote = BookingQuote::query()->lockForUpdate()->find($quote->id);
+
+                        if ($lockedQuote === null || ! in_array($lockedQuote->status, [QuoteStatus::Sent, QuoteStatus::Accepted], true)) {
+                            return false;
+                        }
+
+                        $lockedQuote->forceFill(['status' => QuoteStatus::Expired])->save();
+
+                        if ($locked->status === BookingStatus::AwaitingQuotePayment) {
+                            $this->stateMachine->transition($locked, BookingStatus::PendingQuote, null, 'Quote expired');
+                        }
+
+                        return true;
+                    });
+
+                    if (! $didExpire) {
                         continue;
                     }
 
-                    DB::transaction(function () use ($quote): void {
-                        $quote->forceFill(['status' => QuoteStatus::Expired])->save();
-
-                        if ($quote->booking->status === BookingStatus::AwaitingQuotePayment) {
-                            $this->stateMachine->transition($quote->booking, BookingStatus::PendingQuote, null, 'Quote expired');
-                        }
-                    });
+                    $quote->booking->refresh();
+                    $this->notifier->customer($quote->booking, new QuoteExpiredNotification($quote->booking, $this->notifier->customerUrl($quote->booking)));
+                    $this->notifier->admins(new AdminQuoteExpiredNotification($quote->booking));
 
                     $expired++;
                 }
@@ -167,6 +202,8 @@ class QuoteService
             $quote->forceFill(['status' => QuoteStatus::Expired])->save();
             $this->stateMachine->transition($booking, BookingStatus::PendingQuote, $booking->user, 'Customer requested a new quote');
         });
+
+        $this->notifier->admins(new RequoteRequestedNotification($booking));
     }
 
     public function defaultExpiry(): CarbonInterface

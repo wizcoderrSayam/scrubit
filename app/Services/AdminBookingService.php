@@ -8,7 +8,10 @@ use App\Enums\MessageType;
 use App\Exceptions\BookingActionException;
 use App\Models\Booking;
 use App\Models\User;
+use App\Notifications\Admin\BookingCancelledNotification as AdminBookingCancelledNotification;
 use App\Notifications\Customer\BookingCancelledNotification;
+use App\Notifications\Customer\BookingCompletedNotification;
+use App\Notifications\Customer\CancellationDeclinedNotification;
 use App\Services\Payments\PaymentService;
 
 /**
@@ -76,7 +79,14 @@ class AdminBookingService
         $this->stateMachine->transition($booking, $to, $admin, $reason ?: $label);
 
         if ($to === BookingStatus::Cancelled) {
-            $this->notifier->customer($booking, new BookingCancelledNotification($booking, $refundCents > 0 ? $refundCents : null));
+            $refund = $refundCents > 0 ? $refundCents : null;
+            $this->notifier->customer($booking, new BookingCancelledNotification($booking, $refund));
+            $this->notifier->admins(new AdminBookingCancelledNotification($booking, $refund));
+        } elseif ($to === BookingStatus::Completed) {
+            $this->notifier->customer($booking, new BookingCompletedNotification($booking, $this->notifier->customerUrl($booking)));
+        } elseif ($to === BookingStatus::Confirmed) {
+            // Reaching Confirmed through this manual path only happens when declining a cancellation request.
+            $this->notifier->customer($booking, new CancellationDeclinedNotification($booking, $this->notifier->customerUrl($booking)));
         }
     }
 

@@ -122,6 +122,22 @@
                 @endif
             </x-ui.card>
 
+            <x-ui.card title="Emails sent" description="Every email this booking has triggered, for both the customer and your team.">
+                @if ($booking->emailLogs->isEmpty())
+                    <p class="text-sm text-ink-500">No emails have been sent for this booking yet.</p>
+                @else
+                    <ul class="space-y-2 text-sm">
+                        @foreach ($booking->emailLogs as $log)
+                            <li class="flex flex-wrap gap-2">
+                                <span class="text-ink-500">{{ $log->sent_at->format('M j, Y g:i a') }}</span>
+                                <span class="font-medium">{{ $log->subject }}</span>
+                                <span class="text-ink-500">to {{ $log->recipient }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </x-ui.card>
+
             <x-ui.card title="Status history">
                 <ul class="space-y-2 text-sm">
                     @foreach ($booking->statusHistory as $entry)

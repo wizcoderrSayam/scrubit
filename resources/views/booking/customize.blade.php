@@ -1,11 +1,8 @@
 @php
     $stepLabels = [
         'needs' => 'Your cleaning needs',
-        'property' => 'Property details',
-        'frequency' => 'Visit frequency',
-        'schedule' => 'Preferred date & time',
-        'address' => 'Service address',
-        'contact' => 'Contact details',
+        'schedule' => 'Date, time'.($service->allows_recurring ? ' & frequency' : ''),
+        'details' => 'Address & contact details',
         'extras' => 'Add-ons & extra requests',
     ];
     $closedDayNames = collect($availability['closedWeekdays'])->map(fn ($day) => \App\Models\AvailabilityRule::WEEKDAYS[$day].'s')->implode(', ');
@@ -45,19 +42,6 @@
                 <p x-show="notice" x-cloak x-text="notice" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" role="alert"></p>
 
                 {{-- Structured steps --}}
-                <div x-show="activeWidget === 'frequency'" x-cloak class="mb-4 space-y-3">
-                    <p class="text-sm font-semibold">How often should we visit?</p>
-                    <div class="grid gap-2 sm:grid-cols-2">
-                        @foreach ($frequencies as $value => $label)
-                            <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
-                                <input type="radio" value="{{ $value }}" x-model="form.frequency" class="text-brand-600"> {{ $label }}
-                            </label>
-                        @endforeach
-                    </div>
-                    <p class="text-sm text-red-700" x-text="error('frequency')"></p>
-                    <x-ui.button type="button" x-on:click="submitStep('frequency', { frequency: form.frequency })" x-bind:disabled="sending">Save frequency</x-ui.button>
-                </div>
-
                 <div x-show="activeWidget === 'schedule'" x-cloak class="mb-4 space-y-3">
                     <p class="text-sm font-semibold">Preferred date and time window</p>
                     <div class="grid gap-3 sm:grid-cols-2">
@@ -80,56 +64,69 @@
                     @if ($closedDayNames)
                         <p class="text-xs text-ink-500">We are closed on {{ $closedDayNames }}.</p>
                     @endif
-                    <x-ui.button type="button" x-on:click="submitStep('schedule', { preferred_date: form.preferred_date, time_window: form.time_window })" x-bind:disabled="sending">Save date &amp; time</x-ui.button>
-                </div>
 
-                <div x-show="activeWidget === 'address'" x-cloak class="mb-4 space-y-3">
-                    <p class="text-sm font-semibold">Service address</p>
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        @foreach (['line1' => 'Street address', 'line2' => 'Unit / suite (optional)', 'city' => 'City', 'postal_code' => 'Postal code'] as $field => $label)
-                            <div>
-                                <label for="addr_{{ $field }}" class="block text-sm font-medium">{{ $label }}</label>
-                                <input id="addr_{{ $field }}" type="text" x-model="form.{{ $field }}" class="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm"
-                                    autocomplete="{{ ['line1' => 'address-line1', 'line2' => 'address-line2', 'city' => 'address-level2', 'postal_code' => 'postal-code'][$field] }}">
-                                <p class="mt-1 text-sm text-red-700" x-text="error('{{ $field }}')"></p>
-                            </div>
-                        @endforeach
-                        <div>
-                            <label for="addr_province" class="block text-sm font-medium">Province</label>
-                            <select id="addr_province" x-model="form.province" class="mt-1 block w-full rounded-lg border border-line bg-white px-3 py-2 text-sm">
-                                @foreach ($provinces as $code => $name)
-                                    <option value="{{ $code }}">{{ $name }}</option>
-                                @endforeach
-                            </select>
-                            <p class="mt-1 text-sm text-red-700" x-text="error('province')"></p>
+                    @if ($service->allows_recurring)
+                        <p class="pt-1 text-sm font-semibold">How often should we visit?</p>
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            @foreach ($frequencies as $value => $label)
+                                <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                                    <input type="radio" value="{{ $value }}" x-model="form.frequency" class="text-brand-600"> {{ $label }}
+                                </label>
+                            @endforeach
                         </div>
-                        <div class="sm:col-span-2">
-                            <label for="addr_notes" class="block text-sm font-medium">Access notes (optional)</label>
-                            <input id="addr_notes" type="text" x-model="form.notes" placeholder="Buzzer code, parking, pets…" class="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm">
-                        </div>
-                    </div>
-                    @if ($isLoggedIn)
-                        <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" x-model="form.save_address" class="rounded border-line text-brand-600"> Save this address to my account</label>
+                        <p class="text-sm text-red-700" x-text="error('frequency')"></p>
                     @endif
-                    <div>
-                        <x-ui.button type="button" x-bind:disabled="sending"
-                            x-on:click="submitStep('address', { line1: form.line1, line2: form.line2, city: form.city, province: form.province, postal_code: form.postal_code, notes: form.notes, save_address: form.save_address })">Save address</x-ui.button>
-                    </div>
+
+                    <x-ui.button type="button" x-bind:disabled="sending"
+                        x-on:click="submitStep('schedule', { preferred_date: form.preferred_date, time_window: form.time_window, frequency: form.frequency })">Save &amp; continue</x-ui.button>
                 </div>
 
-                <div x-show="activeWidget === 'contact'" x-cloak class="mb-4 space-y-3">
-                    <p class="text-sm font-semibold">Your contact details</p>
-                    <div class="grid gap-3 sm:grid-cols-3">
-                        @foreach (['contact_name' => ['Full name', 'text', 'name'], 'contact_email' => ['Email', 'email', 'email'], 'contact_phone' => ['Phone', 'tel', 'tel']] as $field => [$label, $type, $autocomplete])
+                <div x-show="activeWidget === 'details'" x-cloak class="mb-4 space-y-4">
+                    <div>
+                        <p class="text-sm font-semibold">Service address</p>
+                        <div class="mt-2 grid gap-3 sm:grid-cols-2">
+                            @foreach (['line1' => 'Street address', 'line2' => 'Unit / suite (optional)', 'city' => 'City', 'postal_code' => 'Postal code'] as $field => $label)
+                                <div>
+                                    <label for="addr_{{ $field }}" class="block text-sm font-medium">{{ $label }}</label>
+                                    <input id="addr_{{ $field }}" type="text" x-model="form.{{ $field }}" class="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm"
+                                        autocomplete="{{ ['line1' => 'address-line1', 'line2' => 'address-line2', 'city' => 'address-level2', 'postal_code' => 'postal-code'][$field] }}">
+                                    <p class="mt-1 text-sm text-red-700" x-text="error('{{ $field }}')"></p>
+                                </div>
+                            @endforeach
                             <div>
-                                <label for="{{ $field }}" class="block text-sm font-medium">{{ $label }}</label>
-                                <input id="{{ $field }}" type="{{ $type }}" x-model="form.{{ $field }}" autocomplete="{{ $autocomplete }}" class="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm">
-                                <p class="mt-1 text-sm text-red-700" x-text="error('{{ $field }}')"></p>
+                                <label for="addr_province" class="block text-sm font-medium">Province</label>
+                                <select id="addr_province" x-model="form.province" class="mt-1 block w-full rounded-lg border border-line bg-white px-3 py-2 text-sm">
+                                    @foreach ($provinces as $code => $name)
+                                        <option value="{{ $code }}">{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                                <p class="mt-1 text-sm text-red-700" x-text="error('province')"></p>
                             </div>
-                        @endforeach
+                            <div class="sm:col-span-2">
+                                <label for="addr_notes" class="block text-sm font-medium">Access notes (optional)</label>
+                                <input id="addr_notes" type="text" x-model="form.notes" placeholder="Buzzer code, parking, pets…" class="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm">
+                            </div>
+                        </div>
+                        @if ($isLoggedIn)
+                            <label class="mt-2 inline-flex items-center gap-2 text-sm"><input type="checkbox" x-model="form.save_address" class="rounded border-line text-brand-600"> Save this address to my account</label>
+                        @endif
                     </div>
+
+                    <div>
+                        <p class="text-sm font-semibold">Your contact details</p>
+                        <div class="mt-2 grid gap-3 sm:grid-cols-3">
+                            @foreach (['contact_name' => ['Full name', 'text', 'name'], 'contact_email' => ['Email', 'email', 'email'], 'contact_phone' => ['Phone', 'tel', 'tel']] as $field => [$label, $type, $autocomplete])
+                                <div>
+                                    <label for="{{ $field }}" class="block text-sm font-medium">{{ $label }}</label>
+                                    <input id="{{ $field }}" type="{{ $type }}" x-model="form.{{ $field }}" autocomplete="{{ $autocomplete }}" class="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm">
+                                    <p class="mt-1 text-sm text-red-700" x-text="error('{{ $field }}')"></p>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
                     <x-ui.button type="button" x-bind:disabled="sending"
-                        x-on:click="submitStep('contact', { contact_name: form.contact_name, contact_email: form.contact_email, contact_phone: form.contact_phone })">Save contact details</x-ui.button>
+                        x-on:click="submitStep('details', { line1: form.line1, line2: form.line2, city: form.city, province: form.province, postal_code: form.postal_code, notes: form.notes, save_address: form.save_address, contact_name: form.contact_name, contact_email: form.contact_email, contact_phone: form.contact_phone })">Save &amp; continue</x-ui.button>
                 </div>
 
                 <div x-show="activeWidget === 'extras'" x-cloak class="mb-4 space-y-3">

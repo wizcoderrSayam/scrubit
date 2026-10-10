@@ -8,8 +8,12 @@ use App\Enums\PaymentStatus;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\User;
+use App\Notifications\Admin\BookingCancelledNotification as AdminBookingCancelledNotification;
 use App\Notifications\Customer\BookingCancelledNotification;
+use App\Notifications\Customer\BookingCompletedNotification;
+use App\Notifications\Customer\CancellationDeclinedNotification;
 use App\Notifications\Customer\QuoteSentNotification;
+use App\Notifications\Customer\VisitScheduledNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -105,6 +109,7 @@ class BookingControllerTest extends TestCase
         $this->assertSame(15000, $payment->fresh()->refunded_cents);
         $this->assertSame(PaymentStatus::PartiallyRefunded, $payment->fresh()->status);
         Notification::assertSentOnDemand(BookingCancelledNotification::class);
+        Notification::assertSentOnDemand(AdminBookingCancelledNotification::class);
     }
 
     public function test_admin_moves_a_confirmed_booking_through_the_job_lifecycle(): void
@@ -116,6 +121,18 @@ class BookingControllerTest extends TestCase
 
         $this->assertSame(BookingStatus::Completed, $booking->fresh()->status);
         $this->assertSame(2, $booking->statusHistory()->count());
+        Notification::assertSentOnDemand(BookingCompletedNotification::class);
+    }
+
+    public function test_declining_a_cancellation_request_notifies_the_customer(): void
+    {
+        $booking = Booking::factory()->submitted(BookingStatus::CancellationRequested)->create();
+
+        $this->actingAs($this->admin)->post(route('admin.bookings.transition', $booking), ['status' => 'confirmed'])
+            ->assertRedirect();
+
+        $this->assertSame(BookingStatus::Confirmed, $booking->fresh()->status);
+        Notification::assertSentOnDemand(CancellationDeclinedNotification::class);
     }
 
     public function test_admin_updates_booking_details_and_confirmed_arrival_time(): void
@@ -133,6 +150,24 @@ class BookingControllerTest extends TestCase
         $this->assertSame('New Name', $booking->contact_name);
         $this->assertSame('17:30', $booking->scheduled_at->format('H:i'));
         $this->assertSame('Burnaby', $booking->address->city);
+        Notification::assertSentOnDemand(VisitScheduledNotification::class);
+    }
+
+    public function test_updating_booking_details_without_changing_the_arrival_time_does_not_notify_again(): void
+    {
+        $booking = Booking::factory()->submitted(BookingStatus::Confirmed)->create([
+            'scheduled_at' => now()->addDays(4)->setTime(17, 30),
+        ]);
+
+        $this->actingAs($this->admin)->put(route('admin.bookings.update', $booking), [
+            'contact_name' => 'Same Name', 'contact_email' => $booking->contact_email, 'contact_phone' => $booking->contact_phone,
+            'preferred_date' => $booking->preferred_date->toDateString(), 'time_window' => $booking->time_window->value,
+            'scheduled_at' => $booking->scheduled_at->format('Y-m-d\TH:i'),
+            'line1' => $booking->address->line1, 'city' => $booking->address->city,
+            'province' => $booking->address->province, 'postal_code' => $booking->address->postal_code,
+        ])->assertRedirect(route('admin.bookings.show', $booking));
+
+        Notification::assertNothingSent();
     }
 
     public function test_repeat_booking_creates_a_new_pending_quote_booking(): void

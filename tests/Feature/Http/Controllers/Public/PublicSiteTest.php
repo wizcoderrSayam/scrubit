@@ -100,6 +100,19 @@ class PublicSiteTest extends TestCase
         Notification::assertSentTo($admin, NewEnquiryNotification::class);
     }
 
+    public function test_quote_request_notification_actually_sends_without_error(): void
+    {
+        User::factory()->admin()->create();
+        $service = Service::factory()->create();
+
+        $this->post(route('quote.store'), [
+            'name' => 'Alex Quote', 'email' => 'alex@example.com', 'phone' => '604-555-0111',
+            'service_id' => $service->id, 'message' => '3 bedroom house',
+        ])->assertRedirect(route('quote.create'));
+
+        $this->assertDatabaseHas('email_logs', ['template_key' => 'admin.new_enquiry']);
+    }
+
     public function test_contact_form_rejects_bots_filling_the_honeypot(): void
     {
         $this->post(route('contact.store'), ['name' => 'Bot', 'email' => 'bot@example.com', 'message' => 'spam', 'website' => 'http://spam.test'])

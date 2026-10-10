@@ -83,20 +83,15 @@ class BookingFlowTest extends TestCase
 
         $chat()->postJson(route('booking.messages.store', $booking), ['message' => 'ok'])
             ->assertJsonPath('state.step', 'needs');
-        $chat()->postJson(route('booking.messages.store', $booking), ['message' => 'Weekly upkeep focusing on the kitchen.'])
-            ->assertJsonPath('state.step', 'property');
-        $chat()->postJson(route('booking.messages.store', $booking), ['message' => 'Two bedroom condo, 900 sq ft, good condition.'])
-            ->assertJsonPath('state.step', 'frequency');
-        $chat()->postJson(route('booking.steps.store', [$booking, 'frequency']), ['frequency' => 'weekly'])
+        $chat()->postJson(route('booking.messages.store', $booking), ['message' => 'Weekly upkeep focusing on the kitchen. Two bedroom condo, 900 sq ft, good condition.'])
             ->assertJsonPath('state.step', 'schedule');
         $chat()->postJson(route('booking.steps.store', [$booking, 'schedule']), [
             'preferred_date' => now()->addDays(5)->toDateString(),
             'time_window' => 'afternoon',
-        ])->assertJsonPath('state.step', 'address');
-        $chat()->postJson(route('booking.steps.store', [$booking, 'address']), [
+            'frequency' => 'weekly',
+        ])->assertJsonPath('state.step', 'details');
+        $chat()->postJson(route('booking.steps.store', [$booking, 'details']), [
             'line1' => '100 Granville St', 'city' => 'Vancouver', 'province' => 'BC', 'postal_code' => 'v6c 1t2',
-        ])->assertJsonPath('state.step', 'contact');
-        $chat()->postJson(route('booking.steps.store', [$booking, 'contact']), [
             'contact_name' => 'Jamie Guest', 'contact_email' => 'Jamie@Example.com', 'contact_phone' => '604-555-0101',
         ])->assertJsonPath('state.step', 'extras');
         $chat()->postJson(route('booking.steps.store', [$booking, 'extras']), ['extra_request' => 'Clean inside the oven'])
@@ -127,6 +122,31 @@ class BookingFlowTest extends TestCase
         $this->withCookie(BookingDraftService::COOKIE, $token)->withCredentials()
             ->postJson(route('booking.steps.store', [$booking, 'schedule']), ['preferred_date' => now()->toDateString(), 'time_window' => 'morning'])
             ->assertJsonValidationErrors('preferred_date');
+    }
+
+    public function test_schedule_requires_a_frequency_for_recurring_services(): void
+    {
+        [$booking, $token] = $this->startDraft(Service::factory()->recurring()->create());
+
+        $this->withCookie(BookingDraftService::COOKIE, $token)->withCredentials()
+            ->postJson(route('booking.steps.store', [$booking, 'schedule']), [
+                'preferred_date' => now()->addDays(5)->toDateString(),
+                'time_window' => 'afternoon',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('frequency');
+    }
+
+    public function test_details_requires_both_address_and_contact_fields_together(): void
+    {
+        [$booking, $token] = $this->startDraft(Service::factory()->create());
+
+        $this->withCookie(BookingDraftService::COOKIE, $token)->withCredentials()
+            ->postJson(route('booking.steps.store', [$booking, 'details']), [
+                'line1' => '100 Granville St', 'city' => 'Vancouver', 'province' => 'BC', 'postal_code' => 'V6C 1T2',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['contact_name', 'contact_email', 'contact_phone']);
     }
 
     public function test_review_redirects_back_to_chat_until_requirements_are_complete(): void
@@ -166,8 +186,9 @@ class BookingFlowTest extends TestCase
         $this->assertNotNull($booking->access_token_hash);
         $this->assertSame(0, $booking->total_cents);
         Notification::assertSentOnDemand(BookingReceivedNotification::class);
-        Notification::assertCount(2);
+        Notification::assertSentOnDemand(NewBookingNotification::class);
         Notification::assertSentTo(User::query()->admins()->first(), NewBookingNotification::class);
+        Notification::assertCount(3);
 
         $this->get(route('bookings.show', $booking))->assertOk()->assertSee('quote pending');
     }

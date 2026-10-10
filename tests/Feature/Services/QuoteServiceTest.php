@@ -11,6 +11,11 @@ use App\Models\BookingQuote;
 use App\Models\Payment;
 use App\Models\TaxRate;
 use App\Models\User;
+use App\Notifications\Admin\QuoteAcceptedNotification;
+use App\Notifications\Admin\QuoteExpiredNotification as AdminQuoteExpiredNotification;
+use App\Notifications\Admin\QuoteSentCopyNotification;
+use App\Notifications\Admin\RequoteRequestedNotification;
+use App\Notifications\Customer\QuoteExpiredNotification;
 use App\Notifications\Customer\QuoteSentNotification;
 use App\Services\QuoteService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,6 +39,42 @@ class QuoteServiceTest extends TestCase
         $this->assertSame(QuoteStatus::Sent, $quote->status);
         $this->assertSame(BookingStatus::AwaitingQuotePayment, $booking->fresh()->status);
         Notification::assertSentOnDemand(QuoteSentNotification::class);
+        Notification::assertSentOnDemand(QuoteSentCopyNotification::class);
+    }
+
+    public function test_accepting_a_quote_notifies_the_admin_once(): void
+    {
+        Notification::fake();
+        $booking = Booking::factory()->submitted(BookingStatus::AwaitingQuotePayment)->create();
+        BookingQuote::factory()->for($booking)->create();
+
+        app(QuoteService::class)->accept($booking);
+        app(QuoteService::class)->accept($booking->fresh());
+
+        Notification::assertSentOnDemandTimes(QuoteAcceptedNotification::class, 1);
+    }
+
+    public function test_expiry_notifies_the_customer_and_admin_for_each_expired_quote(): void
+    {
+        Notification::fake();
+        $booking = Booking::factory()->submitted(BookingStatus::AwaitingQuotePayment)->create();
+        BookingQuote::factory()->for($booking)->create(['expires_at' => now()->subHour()]);
+
+        $this->artisan('quotes:expire')->assertSuccessful();
+
+        Notification::assertSentOnDemand(QuoteExpiredNotification::class);
+        Notification::assertSentOnDemand(AdminQuoteExpiredNotification::class);
+    }
+
+    public function test_requesting_a_new_quote_notifies_the_admin(): void
+    {
+        Notification::fake();
+        $booking = Booking::factory()->submitted(BookingStatus::AwaitingQuotePayment)->create();
+        BookingQuote::factory()->for($booking)->create(['expires_at' => now()->subHour()]);
+
+        app(QuoteService::class)->requestRequote($booking);
+
+        Notification::assertSentOnDemand(RequoteRequestedNotification::class);
     }
 
     public function test_a_revised_quote_supersedes_the_previous_one(): void

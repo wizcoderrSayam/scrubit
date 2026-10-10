@@ -13,12 +13,7 @@
         ['label' => 'Availability', 'route' => 'admin.settings.availability.edit', 'active' => ['admin.settings.availability.*']],
         ['label' => 'Payments', 'route' => 'admin.settings.payments', 'active' => ['admin.settings.payments']],
         ['label' => 'Add-ons', 'route' => 'admin.addons.index', 'active' => ['admin.addons.*']],
-        ['label' => 'Homepage', 'route' => 'admin.content.home.edit', 'active' => ['admin.content.home.*']],
-        ['label' => 'Pages', 'route' => 'admin.pages.index', 'active' => ['admin.pages.*']],
-        ['label' => 'FAQs', 'route' => 'admin.faqs.index', 'active' => ['admin.faqs.*']],
-        ['label' => 'Testimonials', 'route' => 'admin.testimonials.index', 'active' => ['admin.testimonials.*']],
     ];
-
     $patterns = fn (array $tabs) => array_merge(...array_column($tabs, 'active'));
 
     // Mirrors the Elephant sidebar: Orders → Bookings, Products → Services, Contact Messages → Enquiries, Users → Customers.
@@ -29,8 +24,9 @@
         ['label' => 'Categories', 'route' => 'admin.categories.index', 'active' => ['admin.categories.*']],
         ['label' => 'Enquiries', 'route' => 'admin.enquiries.index', 'active' => ['admin.enquiries.*']],
         ['label' => 'Email templates', 'route' => 'admin.email-templates.index', 'active' => ['admin.email-templates.*']],
-        ['label' => 'Settings', 'route' => 'admin.settings.business.edit', 'active' => $patterns($settingsTabs)],
         ['label' => 'Customers', 'route' => 'admin.customers.index', 'active' => ['admin.customers.*']],
+        ['label' => 'Settings', 'route' => 'admin.settings.business.edit', 'active' => $patterns($settingsTabs)],
+    
     ]];
 
     $tabs = match (true) {
@@ -86,13 +82,14 @@
                         @endforeach
                     </div>
                 @endforeach
+            </nav>
 
+
+        <hr class="border-t border-white/10" />
+            <div class="px-3 pb-6">
                 <a href="{{ route('home') }}" target="_blank" class="mt-2 block rounded-lg px-3.5 py-2.5 text-white/85 hover:bg-white/8 hover:text-white focus-visible:outline-white">
                     View website <span aria-hidden="true">↗</span>
                 </a>
-            </nav>
-
-            <div class="px-3 pb-6">
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="block w-full rounded-lg px-3.5 py-2.5 text-left text-sm text-white/85 hover:bg-white/8 hover:text-white focus-visible:outline-white">Sign out</button>
@@ -130,6 +127,9 @@
 
                 @if (session('status'))
                     <x-ui.alert :status="session('status')" class="mb-6" />
+                @endif
+                @if (session('error'))
+                    <x-ui.alert type="error" class="mb-6">{{ session('error') }}</x-ui.alert>
                 @endif
                 <x-ui.errors class="mb-6" />
 

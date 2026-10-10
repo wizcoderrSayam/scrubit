@@ -9,9 +9,9 @@ use App\Models\Booking;
  */
 class ScriptedResponder implements ChatResponder
 {
-    public const TEXT_STEPS = ['needs', 'property'];
+    public const TEXT_STEPS = ['needs'];
 
-    public const MIN_DETAIL_LENGTH = 10;
+    public const MIN_DETAIL_LENGTH = 20;
 
     public function greeting(Booking $booking): string
     {
@@ -20,24 +20,18 @@ class ScriptedResponder implements ChatResponder
 
     public function steps(Booking $booking): array
     {
-        $steps = ['needs', 'property'];
-
-        if ($booking->service->allows_recurring) {
-            $steps[] = 'frequency';
-        }
-
-        return [...$steps, 'schedule', 'address', 'contact', 'extras'];
+        return ['needs', 'schedule', 'details', 'extras'];
     }
 
     public function promptFor(string $step, Booking $booking): string
     {
         return match ($step) {
-            'needs' => $booking->service->chatNeedsPrompt(),
-            'property' => 'Thanks! Now tell us about the space: the type of property, number of bedrooms and bathrooms, approximate size, and its current condition.',
-            'frequency' => 'How often would you like us to come? Each visit is booked and paid separately. Your first visit is what you are booking now.',
-            'schedule' => 'When would you like the first visit? Choose a preferred date and time window, and we will confirm the exact arrival time.',
-            'address' => 'Where should we clean? Please enter the service address.',
-            'contact' => 'How can we reach you about this booking?',
+            'needs' => $booking->service->chatNeedsPrompt()
+                .' Also let us know the property type, number of bedrooms and bathrooms, approximate size, and its current condition.',
+            'schedule' => 'When would you like the first visit? Choose a preferred date and time window'
+                .($booking->service->allows_recurring ? ', and how often you would like us to come' : '')
+                .'. We will confirm the exact arrival time.',
+            'details' => 'Where should we clean, and how can we reach you about this booking? Please enter the service address and your contact details.',
             'extras' => 'Would you like any add-on services, or is there anything else we should know? Anything that needs a custom price is reviewed by our team before you pay.',
             default => 'That is everything we need. Review your booking whenever you are ready. You can keep adding details here at any time.',
         };

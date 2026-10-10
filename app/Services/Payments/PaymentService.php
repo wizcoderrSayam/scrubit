@@ -9,9 +9,11 @@ use App\Exceptions\BookingActionException;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\User;
+use App\Notifications\Admin\PaymentFailedNotification as AdminPaymentFailedNotification;
 use App\Notifications\Admin\PaymentNeedsAttentionNotification;
 use App\Notifications\Admin\PaymentReceivedNotification;
 use App\Notifications\Customer\BookingConfirmedNotification;
+use App\Notifications\Customer\PaymentFailedNotification;
 use App\Services\BookingNotifier;
 use App\Services\BookingStateMachine;
 use Illuminate\Support\Facades\DB;
@@ -154,14 +156,22 @@ class PaymentService
 
             return match ($event->type) {
                 GatewayEventType::Processing => $this->moveTo($payment, PaymentStatus::Processing),
-                GatewayEventType::Failed => $this->moveTo($payment, PaymentStatus::Failed, $event->failureReason ?? 'Payment failed'),
+                GatewayEventType::Failed => $this->applyFailure($payment, $booking, $event->failureReason ?? 'Payment failed'),
                 GatewayEventType::Cancelled => $this->moveTo($payment, PaymentStatus::Cancelled, 'Checkout cancelled'),
                 GatewayEventType::Succeeded => $this->applySuccess($payment, $booking, $event),
             };
         });
 
         if ($afterCommit !== null) {
-            DB::afterCommit($afterCommit);
+            // The payment/booking state change has already committed; a notification failure here (e.g. SMTP down)
+            // must not fail the webhook response, or the gateway will retry it and find nothing left to transition.
+            DB::afterCommit(function () use ($afterCommit): void {
+                try {
+                    $afterCommit();
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            });
         }
     }
 
@@ -261,6 +271,23 @@ class PaymentService
         }
 
         return null;
+    }
+
+    /**
+     * A failed payment never changes the booking's status; the customer can simply retry.
+     */
+    private function applyFailure(Payment $payment, Booking $booking, string $reason): ?\Closure
+    {
+        if (! $payment->status->canTransitionTo(PaymentStatus::Failed)) {
+            return null;
+        }
+
+        $payment->forceFill(['status' => PaymentStatus::Failed, 'failure_reason' => $reason])->save();
+
+        return function () use ($booking, $payment): void {
+            $this->notifier->customer($booking, new PaymentFailedNotification($booking, $payment, $this->notifier->customerUrl($booking)));
+            $this->notifier->admins(new AdminPaymentFailedNotification($booking, $payment));
+        };
     }
 
     private function applySuccess(Payment $payment, Booking $booking, GatewayEvent $event): ?\Closure

@@ -10,7 +10,9 @@ use App\Http\Requests\Admin\BookingTransitionRequest;
 use App\Http\Requests\Admin\UpdateBookingDetailsRequest;
 use App\Models\Booking;
 use App\Models\Service;
+use App\Notifications\Customer\VisitScheduledNotification;
 use App\Services\AdminBookingService;
+use App\Services\BookingNotifier;
 use App\Services\BookingService;
 use App\Services\QuoteService;
 use App\Support\Money;
@@ -67,7 +69,7 @@ class BookingController extends Controller
 
         $booking->load([
             'service', 'user', 'address', 'addons', 'messages.user', 'quotes.creator',
-            'payments', 'statusHistory.user', 'repeatedFrom', 'successfulPayment',
+            'payments', 'statusHistory.user', 'repeatedFrom', 'successfulPayment', 'emailLogs',
         ]);
 
         return view('admin.bookings.show', [
@@ -83,9 +85,11 @@ class BookingController extends Controller
         ]);
     }
 
-    public function update(UpdateBookingDetailsRequest $request, Booking $booking): RedirectResponse
+    public function update(UpdateBookingDetailsRequest $request, Booking $booking, BookingNotifier $notifier): RedirectResponse
     {
         abort_if($booking->status === BookingStatus::Draft || $booking->status->isFinal(), 403, 'Completed and cancelled bookings cannot be edited.');
+
+        $previousScheduledAt = $booking->scheduled_at?->toDateTimeString();
 
         DB::transaction(function () use ($request, $booking): void {
             $booking->forceFill([
@@ -104,6 +108,13 @@ class BookingController extends Controller
                 'country' => 'CA',
             ]);
         });
+
+        // Only a confirmed/active booking's arrival time is worth an email; an unpaid booking has nothing "confirmed" yet.
+        $isActive = in_array($booking->status, [BookingStatus::Confirmed, BookingStatus::InProgress], true);
+
+        if ($isActive && $booking->scheduled_at !== null && $booking->scheduled_at->toDateTimeString() !== $previousScheduledAt) {
+            $notifier->customer($booking, new VisitScheduledNotification($booking, $notifier->customerUrl($booking)));
+        }
 
         return to_route('admin.bookings.show', $booking)->with('status', 'Booking details saved.');
     }

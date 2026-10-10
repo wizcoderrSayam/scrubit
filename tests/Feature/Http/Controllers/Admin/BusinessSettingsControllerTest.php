@@ -6,6 +6,8 @@ use App\Models\BusinessSetting;
 use App\Models\User;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use RuntimeException;
 use Tests\TestCase;
 
 class BusinessSettingsControllerTest extends TestCase
@@ -113,5 +115,34 @@ class BusinessSettingsControllerTest extends TestCase
                 'addon_note_rate',
                 'cancellation_cutoff_hours',
             ]);
+    }
+
+    public function test_forbids_customers_from_sending_a_test_email(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.settings.test-email'))
+            ->assertForbidden();
+    }
+
+    public function test_admin_can_send_a_test_email_to_the_business_address(): void
+    {
+        Mail::fake();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->post(route('admin.settings.test-email'))
+            ->assertRedirect(route('admin.settings.business.edit'))
+            ->assertSessionHas('status', 'Test email sent to Info@scrubit.ca.');
+    }
+
+    public function test_admin_sees_a_friendly_error_when_the_test_email_fails_to_send(): void
+    {
+        Mail::shouldReceive('raw')->once()->andThrow(new RuntimeException('Connection could not be established with host smtp.gmail.com'));
+
+        $response = $this->actingAs(User::factory()->admin()->create())
+            ->post(route('admin.settings.test-email'))
+            ->assertRedirect(route('admin.settings.business.edit'));
+
+        $response->assertSessionHas('error');
+        $this->assertStringNotContainsString('smtp.gmail.com', session('error'));
     }
 }

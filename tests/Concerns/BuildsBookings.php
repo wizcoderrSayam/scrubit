@@ -26,7 +26,7 @@ trait BuildsBookings
             'draft_token_hash' => hash('sha256', str_repeat('a', 40)),
             'preferred_date' => now()->addDays(5)->toDateString(),
             'time_window' => TimeWindow::Morning,
-            'chat_state' => ['needs_done' => true, 'property_done' => true, 'extras_done' => true],
+            'chat_state' => ['needs_done' => true, 'extras_done' => true],
             ...$attributes,
         ]);
 

@@ -180,6 +180,14 @@ class Booking extends Model
     }
 
     /**
+     * @return HasMany<EmailLog, $this>
+     */
+    public function emailLogs(): HasMany
+    {
+        return $this->hasMany(EmailLog::class)->latest('sent_at');
+    }
+
+    /**
      * @param  Builder<self>  $query
      */
     public function scopeSubmitted(Builder $query): void

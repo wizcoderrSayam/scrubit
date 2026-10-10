@@ -8,6 +8,7 @@ use App\Enums\MessageType;
 use App\Exceptions\BookingActionException;
 use App\Models\Booking;
 use App\Models\User;
+use App\Notifications\Admin\BookingCancelledNotification as AdminBookingCancelledNotification;
 use App\Notifications\Admin\CancellationRequestedNotification;
 use App\Notifications\Admin\NewBookingNotification;
 use App\Notifications\Customer\BookingCancelledNotification;
@@ -145,9 +146,12 @@ class BookingService
             return BookingStatus::CancellationRequested;
         });
 
-        $result === BookingStatus::Cancelled
-            ? $this->notifier->customer($booking, new BookingCancelledNotification($booking, null))
-            : $this->notifier->admins(new CancellationRequestedNotification($booking));
+        if ($result === BookingStatus::Cancelled) {
+            $this->notifier->customer($booking, new BookingCancelledNotification($booking, null));
+            $this->notifier->admins(new AdminBookingCancelledNotification($booking, null));
+        } else {
+            $this->notifier->admins(new CancellationRequestedNotification($booking));
+        }
 
         return $result;
     }

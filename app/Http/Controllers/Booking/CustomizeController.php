@@ -38,7 +38,7 @@ class CustomizeController extends Controller
         $booking->load(['service.addons' => fn ($query) => $query->active()->orderBy('sort_order'), 'address', 'addons']);
         $state = $this->chat->state($booking);
         $edit = $request->query('edit');
-        $editableSteps = array_diff($state['steps'], ['needs', 'property']);
+        $editableSteps = array_diff($state['steps'], ['needs']);
 
         if (is_string($edit) && in_array($edit, $editableSteps, true) && $this->chat->isStepComplete($booking, $edit)) {
             $state['step'] = $edit;
@@ -55,11 +55,6 @@ class CustomizeController extends Controller
                 'state' => $state,
                 'suggestions' => [
                     'needs' => $booking->service->suggestedPrompts(),
-                    'property' => [
-                        '2 bedroom, 1 bathroom apartment, about 850 sq ft, in fairly good condition.',
-                        '3 bedroom house with 2 bathrooms, around 1,800 sq ft. The kitchen needs extra attention.',
-                        'Small office, about 1,200 sq ft, with a kitchenette and two washrooms.',
-                    ],
                 ],
                 'urls' => [
                     'message' => route('booking.messages.store', $booking),

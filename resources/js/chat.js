@@ -18,7 +18,7 @@ export default (config) => ({
     },
 
     get textSteps() {
-        return ['needs', 'property'];
+        return ['needs'];
     },
 
     get activeWidget() {
@@ -30,8 +30,7 @@ export default (config) => ({
     },
 
     get placeholder() {
-        if (this.state.step === 'needs') return 'Describe what you need cleaned and your priorities…';
-        if (this.state.step === 'property') return 'Property type, bedrooms, bathrooms, size and condition…';
+        if (this.state.step === 'needs') return 'Describe what you need cleaned, the property type, rooms, size and condition…';
         return 'Add any other details or special instructions…';
     },
 

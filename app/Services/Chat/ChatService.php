@@ -34,7 +34,7 @@ class ChatService
      */
     public function start(Booking $booking): void
     {
-        $booking->forceFill(['chat_state' => ['needs_done' => false, 'property_done' => false, 'extras_done' => false]])->save();
+        $booking->forceFill(['chat_state' => ['needs_done' => false, 'extras_done' => false]])->save();
 
         $this->assistant($booking, $this->responder->greeting($booking));
         $this->assistant($booking, $this->responder->promptFor('needs', $booking));
@@ -93,10 +93,8 @@ class ChatService
             $this->lockDraft($booking);
 
             $summary = match ($step) {
-                'frequency' => $this->applyFrequency($booking, $data),
                 'schedule' => $this->applySchedule($booking, $data),
-                'address' => $this->applyAddress($booking, $data, $user),
-                'contact' => $this->applyContact($booking, $data),
+                'details' => $this->applyDetails($booking, $data, $user),
                 'extras' => $this->applyExtras($booking, $data),
             };
 
@@ -115,7 +113,7 @@ class ChatService
      */
     public function currentStep(Booking $booking): string
     {
-        $booking->loadMissing('address');
+        $booking->loadMissing(['service', 'address']);
 
         foreach ($this->responder->steps($booking) as $step) {
             if (! $this->isStepComplete($booking, $step)) {
@@ -136,11 +134,12 @@ class ChatService
         $state = (array) $booking->chat_state;
 
         return match ($step) {
-            'needs', 'property', 'extras' => (bool) ($state["{$step}_done"] ?? false),
-            'frequency' => $booking->frequency !== null,
-            'schedule' => $booking->preferred_date !== null && $booking->time_window !== null,
-            'address' => $booking->address !== null,
-            'contact' => filled($booking->contact_name) && filled($booking->contact_email) && filled($booking->contact_phone),
+            'needs', 'extras' => (bool) ($state["{$step}_done"] ?? false),
+            'schedule' => $booking->preferred_date !== null
+                && $booking->time_window !== null
+                && (! $booking->service->allows_recurring || $booking->frequency !== null),
+            'details' => $booking->address !== null
+                && filled($booking->contact_name) && filled($booking->contact_email) && filled($booking->contact_phone),
             default => true,
         };
     }
@@ -160,17 +159,8 @@ class ChatService
     }
 
     /**
-     * @param  array<string, mixed>  $data
-     */
-    private function applyFrequency(Booking $booking, array $data): string
-    {
-        $frequency = RecurringFrequency::from($data['frequency']);
-        $booking->forceFill(['frequency' => $frequency])->save();
-
-        return "Frequency: {$frequency->label()}";
-    }
-
-    /**
+     * Preferred date, time window and (for recurring-capable services) frequency, all in one step.
+     *
      * @param  array<string, mixed>  $data
      *
      * @throws ValidationException
@@ -184,15 +174,30 @@ class ChatService
             throw ValidationException::withMessages(['preferred_date' => $reason]);
         }
 
-        $booking->forceFill(['preferred_date' => $date, 'time_window' => $window])->save();
+        $attributes = ['preferred_date' => $date, 'time_window' => $window];
+        $summary = 'Preferred visit: '.$date->format('l, F j, Y').', '.$window->label();
 
-        return 'Preferred visit: '.$date->format('l, F j, Y').', '.$window->label();
+        if ($booking->service->allows_recurring) {
+            if (blank($data['frequency'] ?? null)) {
+                throw ValidationException::withMessages(['frequency' => 'Please choose how often you would like us to come.']);
+            }
+
+            $frequency = RecurringFrequency::from($data['frequency']);
+            $attributes['frequency'] = $frequency;
+            $summary .= ' · Frequency: '.$frequency->label();
+        }
+
+        $booking->forceFill($attributes)->save();
+
+        return $summary;
     }
 
     /**
+     * Service address and contact details, combined into a single step.
+     *
      * @param  array<string, mixed>  $data
      */
-    private function applyAddress(Booking $booking, array $data, ?User $user): string
+    private function applyDetails(Booking $booking, array $data, ?User $user): string
     {
         $fields = [
             'line1' => $data['line1'],
@@ -214,21 +219,14 @@ class ChatService
             );
         }
 
-        return 'Service address: '.$address->oneLine();
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    private function applyContact(Booking $booking, array $data): string
-    {
         $booking->forceFill([
             'contact_name' => $data['contact_name'],
             'contact_email' => strtolower($data['contact_email']),
             'contact_phone' => $data['contact_phone'],
         ])->save();
 
-        return "Contact: {$booking->contact_name}, {$booking->contact_email}, {$booking->contact_phone}";
+        return 'Service address: '.$address->oneLine()
+            ."\nContact: {$booking->contact_name}, {$booking->contact_email}, {$booking->contact_phone}";
     }
 
     /**

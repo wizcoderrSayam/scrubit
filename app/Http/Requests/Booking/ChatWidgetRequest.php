@@ -22,14 +22,14 @@ class ChatWidgetRequest extends FormRequest
     public function rules(): array
     {
         return match ($this->route('step')) {
-            'frequency' => [
-                'frequency' => ['required', Rule::enum(RecurringFrequency::class)],
-            ],
             'schedule' => [
                 'preferred_date' => ['required', 'date_format:Y-m-d'],
                 'time_window' => ['required', Rule::enum(TimeWindow::class)],
+                // Required only when the service allows recurring visits; ChatService enforces that
+                // (it needs the service relation, which this request does not load to avoid a lazy-load).
+                'frequency' => ['nullable', Rule::enum(RecurringFrequency::class)],
             ],
-            'address' => [
+            'details' => [
                 'line1' => ['required', 'string', 'max:200'],
                 'line2' => ['nullable', 'string', 'max:200'],
                 'city' => ['required', 'string', 'max:120'],
@@ -37,8 +37,6 @@ class ChatWidgetRequest extends FormRequest
                 'postal_code' => ['required', 'string', 'regex:'.Provinces::POSTAL_CODE_PATTERN],
                 'notes' => ['nullable', 'string', 'max:500'],
                 'save_address' => ['nullable', 'boolean'],
-            ],
-            'contact' => [
                 'contact_name' => ['required', 'string', 'max:120'],
                 'contact_email' => ['required', 'email', 'max:255'],
                 'contact_phone' => ['required', 'string', 'max:30', 'regex:/^[0-9+().\s-]{7,30}$/'],

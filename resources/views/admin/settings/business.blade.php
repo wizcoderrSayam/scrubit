@@ -8,7 +8,12 @@
                 <x-ui.input name="business_name" label="Business name" :value="$settings['business.name']" required class="sm:col-span-2" />
                 <x-ui.input name="business_tagline" label="Tagline" :value="$settings['business.tagline']" class="sm:col-span-2" />
                 <x-ui.input name="business_phone" label="Phone" type="tel" :value="$settings['business.phone']" required />
-                <x-ui.input name="business_email" label="Email" type="email" :value="$settings['business.email']" required />
+                <div class="space-y-1.5">
+                    <x-ui.input name="business_email" label="Email" type="email" :value="$settings['business.email']" required />
+                    <button type="submit" form="test-email-form" class="text-sm font-medium text-brand-700 hover:text-brand-900">
+                        Send test email
+                    </button>
+                </div>
                 <x-ui.input name="business_location" label="Location" :value="$settings['business.location']" />
 
                 <div class="space-y-1.5">
@@ -59,5 +64,9 @@
         </x-ui.card>
 
         <x-ui.button size="lg">Save settings</x-ui.button>
+    </form>
+
+    <form id="test-email-form" method="POST" action="{{ route('admin.settings.test-email') }}">
+        @csrf
     </form>
 </x-layouts.admin>

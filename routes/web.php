@@ -54,7 +54,7 @@ Route::prefix('/book/{booking:reference}')->group(function () {
     Route::get('/customize', CustomizeController::class)->name('booking.customize');
     Route::post('/messages', [ChatController::class, 'message'])->middleware('throttle:chat')->name('booking.messages.store');
     Route::post('/steps/{step}', [ChatController::class, 'step'])->middleware('throttle:chat')
-        ->whereIn('step', ['frequency', 'schedule', 'address', 'contact', 'extras'])->name('booking.steps.store');
+        ->whereIn('step', ['schedule', 'details', 'extras'])->name('booking.steps.store');
     Route::get('/review', [ReviewController::class, 'show'])->name('booking.review');
     Route::post('/submit', [ReviewController::class, 'submit'])->middleware('throttle:sensitive')->name('booking.submit');
 
@@ -145,6 +145,7 @@ Route::middleware(['auth', 'verified', 'can:admin'])
 
         Route::get('/settings/business', [Admin\BusinessSettingsController::class, 'edit'])->name('settings.business.edit');
         Route::put('/settings/business', [Admin\BusinessSettingsController::class, 'update'])->name('settings.business.update');
+        Route::post('/settings/test-email', [Admin\BusinessSettingsController::class, 'sendTestEmail'])->middleware('throttle:sensitive')->name('settings.test-email');
         Route::get('/settings/tax', [Admin\TaxRateController::class, 'index'])->name('settings.tax.index');
         Route::post('/settings/tax', [Admin\TaxRateController::class, 'store'])->name('settings.tax.store');
         Route::put('/settings/tax/{taxRate}', [Admin\TaxRateController::class, 'update'])->name('settings.tax.update');

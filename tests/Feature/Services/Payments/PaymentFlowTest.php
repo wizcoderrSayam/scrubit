@@ -10,8 +10,10 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\PaymentEvent;
 use App\Models\User;
+use App\Notifications\Admin\PaymentFailedNotification as AdminPaymentFailedNotification;
 use App\Notifications\Admin\PaymentNeedsAttentionNotification;
 use App\Notifications\Customer\BookingConfirmedNotification;
+use App\Notifications\Customer\PaymentFailedNotification;
 use App\Services\Payments\DemoGateway;
 use App\Services\Payments\GatewayEventType;
 use App\Services\Payments\PaymentService;
@@ -82,6 +84,20 @@ class PaymentFlowTest extends TestCase
         $this->assertDatabaseCount(PaymentEvent::class, 2);
         $this->assertSame(1, $booking->statusHistory()->where('to_status', BookingStatus::Confirmed)->count());
         Notification::assertSentOnDemandTimes(BookingConfirmedNotification::class, 1);
+    }
+
+    public function test_failed_webhook_notifies_the_customer_and_admin_without_changing_the_booking_status(): void
+    {
+        Notification::fake();
+        [$booking] = $this->bookingWithAcceptedQuote();
+        $payment = $this->payments()->startCheckout($booking);
+
+        $this->sendDemoWebhook($payment, GatewayEventType::Failed, ['failure_reason' => 'Card declined'])->assertOk();
+
+        $this->assertSame(PaymentStatus::Failed, $payment->fresh()->status);
+        $this->assertSame(BookingStatus::AwaitingQuotePayment, $booking->fresh()->status);
+        Notification::assertSentOnDemand(PaymentFailedNotification::class);
+        Notification::assertSentOnDemand(AdminPaymentFailedNotification::class);
     }
 
     public function test_invalid_signature_is_rejected_with_400(): void

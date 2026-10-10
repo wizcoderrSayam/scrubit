@@ -5,7 +5,9 @@ namespace Tests\Feature\Http\Controllers\Booking;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\User;
+use App\Notifications\Admin\BookingCancelledNotification as AdminBookingCancelledNotification;
 use App\Notifications\Admin\CancellationRequestedNotification;
+use App\Notifications\Customer\BookingCancelledNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
@@ -69,6 +71,8 @@ class BookingControllerTest extends TestCase
 
         $this->assertSame(BookingStatus::Cancelled, $booking->fresh()->status);
         $this->assertSame('Plans changed', $booking->fresh()->cancellation_reason);
+        Notification::assertSentTo($owner, BookingCancelledNotification::class);
+        Notification::assertSentOnDemand(AdminBookingCancelledNotification::class);
     }
 
     public function test_paid_booking_cancellation_becomes_a_request_inside_the_window(): void
