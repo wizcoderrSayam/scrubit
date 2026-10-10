@@ -1,34 +1,43 @@
 @props(['title', 'heading' => null, 'subtitle' => null])
 
 @php
-    $navigation = [
-        'Overview' => [
-            ['label' => 'Dashboard', 'route' => 'admin.dashboard', 'active' => 'admin.dashboard'],
-            ['label' => 'Bookings', 'route' => 'admin.bookings.index', 'active' => 'admin.bookings.*'],
-            ['label' => 'Quotes', 'route' => 'admin.quotes.index', 'active' => 'admin.quotes.*'],
-            ['label' => 'Payments', 'route' => 'admin.payments.index', 'active' => 'admin.payments.*'],
-            ['label' => 'Customers', 'route' => 'admin.customers.index', 'active' => 'admin.customers.*'],
-            ['label' => 'Enquiries', 'route' => 'admin.enquiries.index', 'active' => 'admin.enquiries.*'],
-        ],
-        'Catalog' => [
-            ['label' => 'Services', 'route' => 'admin.services.index', 'active' => 'admin.services.*'],
-            ['label' => 'Categories', 'route' => 'admin.categories.index', 'active' => 'admin.categories.*'],
-            ['label' => 'Add-ons', 'route' => 'admin.addons.index', 'active' => 'admin.addons.*'],
-        ],
-        'Content' => [
-            ['label' => 'Homepage', 'route' => 'admin.content.home.edit', 'active' => 'admin.content.home.*'],
-            ['label' => 'Pages', 'route' => 'admin.pages.index', 'active' => 'admin.pages.*'],
-            ['label' => 'FAQs', 'route' => 'admin.faqs.index', 'active' => 'admin.faqs.*'],
-            ['label' => 'Testimonials', 'route' => 'admin.testimonials.index', 'active' => 'admin.testimonials.*'],
-            ['label' => 'Email templates', 'route' => 'admin.email-templates.index', 'active' => 'admin.email-templates.*'],
-        ],
-        'Settings' => [
-            ['label' => 'Business settings', 'route' => 'admin.settings.business.edit', 'active' => 'admin.settings.business.*'],
-            ['label' => 'Tax rates', 'route' => 'admin.settings.tax.index', 'active' => 'admin.settings.tax.*'],
-            ['label' => 'Availability', 'route' => 'admin.settings.availability.edit', 'active' => 'admin.settings.availability.*'],
-            ['label' => 'Payment settings', 'route' => 'admin.settings.payments', 'active' => 'admin.settings.payments'],
-        ],
+    // Sections reached through a tab bar inside Bookings and Settings rather than the sidebar.
+    $bookingTabs = [
+        ['label' => 'Bookings', 'route' => 'admin.bookings.index', 'active' => ['admin.bookings.*']],
+        ['label' => 'Quotes', 'route' => 'admin.quotes.index', 'active' => ['admin.quotes.*']],
+        ['label' => 'Payments', 'route' => 'admin.payments.index', 'active' => ['admin.payments.*']],
     ];
+    $settingsTabs = [
+        ['label' => 'Business', 'route' => 'admin.settings.business.edit', 'active' => ['admin.settings.business.*']],
+        ['label' => 'Tax rates', 'route' => 'admin.settings.tax.index', 'active' => ['admin.settings.tax.*']],
+        ['label' => 'Availability', 'route' => 'admin.settings.availability.edit', 'active' => ['admin.settings.availability.*']],
+        ['label' => 'Payments', 'route' => 'admin.settings.payments', 'active' => ['admin.settings.payments']],
+        ['label' => 'Add-ons', 'route' => 'admin.addons.index', 'active' => ['admin.addons.*']],
+        ['label' => 'Homepage', 'route' => 'admin.content.home.edit', 'active' => ['admin.content.home.*']],
+        ['label' => 'Pages', 'route' => 'admin.pages.index', 'active' => ['admin.pages.*']],
+        ['label' => 'FAQs', 'route' => 'admin.faqs.index', 'active' => ['admin.faqs.*']],
+        ['label' => 'Testimonials', 'route' => 'admin.testimonials.index', 'active' => ['admin.testimonials.*']],
+    ];
+
+    $patterns = fn (array $tabs) => array_merge(...array_column($tabs, 'active'));
+
+    // Mirrors the Elephant sidebar: Orders → Bookings, Products → Services, Contact Messages → Enquiries, Users → Customers.
+    $navigation = [[
+        ['label' => 'Dashboard', 'route' => 'admin.dashboard', 'active' => ['admin.dashboard']],
+        ['label' => 'Bookings', 'route' => 'admin.bookings.index', 'active' => $patterns($bookingTabs)],
+        ['label' => 'Services', 'route' => 'admin.services.index', 'active' => ['admin.services.*']],
+        ['label' => 'Categories', 'route' => 'admin.categories.index', 'active' => ['admin.categories.*']],
+        ['label' => 'Enquiries', 'route' => 'admin.enquiries.index', 'active' => ['admin.enquiries.*']],
+        ['label' => 'Email templates', 'route' => 'admin.email-templates.index', 'active' => ['admin.email-templates.*']],
+        ['label' => 'Settings', 'route' => 'admin.settings.business.edit', 'active' => $patterns($settingsTabs)],
+        ['label' => 'Customers', 'route' => 'admin.customers.index', 'active' => ['admin.customers.*']],
+    ]];
+
+    $tabs = match (true) {
+        request()->routeIs(...$patterns($bookingTabs)) => $bookingTabs,
+        request()->routeIs(...$patterns($settingsTabs)) => $settingsTabs,
+        default => [],
+    };
 @endphp
 
 <!DOCTYPE html>
@@ -65,7 +74,7 @@
                 @foreach ($navigation as $items)
                     <div class="contents">
                         @foreach ($items as $item)
-                            @php($isActive = request()->routeIs($item['active']))
+                            @php($isActive = request()->routeIs(...$item['active']))
                             <a href="{{ route($item['route']) }}"
                                 @class([
                                     'block rounded-lg px-3.5 py-2.5 transition-colors focus-visible:outline-white',
@@ -104,6 +113,21 @@
             </header>
 
             <main id="main" class="p-4 sm:p-6 lg:p-8">
+                @if ($tabs)
+                    <nav class="-mx-1 mb-6 flex gap-1 overflow-x-auto border-b border-slate-200 px-1" aria-label="Section">
+                        @foreach ($tabs as $tab)
+                            @php($tabActive = request()->routeIs(...$tab['active']))
+                            <a href="{{ route($tab['route']) }}"
+                                @class([
+                                    'whitespace-nowrap border-b-2 px-3 pb-2.5 pt-1 text-sm font-medium',
+                                    'border-admin-accent text-admin-accent' => $tabActive,
+                                    'border-transparent text-ink-500 hover:text-ink-900' => ! $tabActive,
+                                ])
+                                @if ($tabActive) aria-current="page" @endif>{{ $tab['label'] }}</a>
+                        @endforeach
+                    </nav>
+                @endif
+
                 @if (session('status'))
                     <x-ui.alert :status="session('status')" class="mb-6" />
                 @endif
