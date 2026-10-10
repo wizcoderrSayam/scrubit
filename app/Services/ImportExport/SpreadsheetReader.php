@@ -10,7 +10,7 @@ use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 use Throwable;
 
 /**
- * Reads the first sheet of a CSV or XLSX file. The header row is required and must match the dataset.
+ * Reads the first sheet of a CSV or XLSX file. The header row must match the service export.
  */
 final class SpreadsheetReader
 {
@@ -59,7 +59,7 @@ final class SpreadsheetReader
                         $headers = $this->normalizeHeader($values);
 
                         if ($headers !== $expectedHeaders) {
-                            throw new ImportException('The header row does not match this dataset. Download a blank template and keep its column names.');
+                            throw new ImportException('The header row does not match the service export. Download a template and keep its column names.');
                         }
 
                         continue;

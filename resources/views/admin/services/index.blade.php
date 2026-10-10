@@ -5,8 +5,40 @@
             <input id="q" name="q" value="{{ request('q') }}" placeholder="Search services" class="rounded-lg border border-line px-3 py-2 text-sm">
             <x-ui.button variant="secondary">Search</x-ui.button>
         </form>
-        <x-ui.button :href="route('admin.services.create')">New service</x-ui.button>
+        <div class="flex flex-wrap items-center gap-2">
+            <form method="GET" action="{{ route('admin.services.export') }}" class="flex items-center gap-2">
+                <label for="export-format" class="sr-only">Export format</label>
+                <select id="export-format" name="format" class="rounded-lg border border-line bg-white px-3 py-2 text-sm">
+                    <option value="csv">CSV</option>
+                    <option value="xlsx">Excel</option>
+                </select>
+                <x-ui.button variant="secondary">Export</x-ui.button>
+            </form>
+            <x-ui.button :href="route('admin.services.create')">New service</x-ui.button>
+        </div>
     </div>
+
+    @if (session('import_errors'))
+        <x-ui.alert type="error" class="mb-6">
+            <p class="font-semibold">Nothing was imported. Fix these rows and upload the file again.</p>
+            <ul class="mt-2 list-disc space-y-1 pl-5">
+                @foreach (session('import_errors') as $row => $messages)
+                    <li>Row {{ $row }}: {{ implode(' ', $messages) }}</li>
+                @endforeach
+            </ul>
+        </x-ui.alert>
+    @endif
+
+    <form method="POST" action="{{ route('admin.services.import') }}" enctype="multipart/form-data" class="mb-6 flex flex-wrap items-center gap-3">
+        @csrf
+        <label for="import-file" class="text-sm font-medium text-ink-900">Import services</label>
+        <input id="import-file" name="file" type="file" accept=".csv,.xlsx,text/csv" required class="text-sm text-ink-700">
+        <x-ui.button variant="secondary">Import</x-ui.button>
+        <a href="{{ route('admin.services.template') }}" class="text-sm font-medium text-admin-accent hover:underline">CSV template</a>
+        @error('file')
+            <p class="w-full text-sm text-red-700">{{ $message }}</p>
+        @enderror
+    </form>
 
     <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table class="min-w-full divide-y divide-slate-200 text-sm">

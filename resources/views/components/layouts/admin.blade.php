@@ -22,7 +22,6 @@
         ['label' => 'Bookings', 'route' => 'admin.bookings.index', 'active' => $patterns($bookingTabs)],
         ['label' => 'Services', 'route' => 'admin.services.index', 'active' => ['admin.services.*']],
         ['label' => 'Categories', 'route' => 'admin.categories.index', 'active' => ['admin.categories.*']],
-        ['label' => 'Import / Export', 'route' => 'admin.import-export.index', 'active' => ['admin.import-export.*']],
         ['label' => 'Enquiries', 'route' => 'admin.enquiries.index', 'active' => ['admin.enquiries.*']],
         ['label' => 'Email templates', 'route' => 'admin.email-templates.index', 'active' => ['admin.email-templates.*']],
         ['label' => 'Customers', 'route' => 'admin.customers.index', 'active' => ['admin.customers.*']],

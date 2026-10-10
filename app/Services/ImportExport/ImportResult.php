@@ -3,7 +3,7 @@
 namespace App\Services\ImportExport;
 
 /**
- * Outcome of one catalog import. Errors mean nothing was written.
+ * Outcome of one service import. Errors mean nothing was written.
  */
 final class ImportResult
 {

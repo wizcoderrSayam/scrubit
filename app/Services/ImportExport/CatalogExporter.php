@@ -3,57 +3,29 @@
 namespace App\Services\ImportExport;
 
 use App\Models\Service;
-use App\Models\ServiceAddon;
-use App\Models\ServiceCategory;
 use App\Support\Money;
-use InvalidArgumentException;
 
 /**
- * Catalog rows for categories, services, and add-ons. Bookings are exported separately.
+ * Rows for the services spreadsheet download.
  */
 final class CatalogExporter
 {
     /**
-     * @return iterable<int, list<string>>
+     * @return list<string>
      */
-    public function rows(Dataset $dataset): iterable
+    public function headers(): array
     {
-        return match ($dataset) {
-            Dataset::Categories => $this->categories(),
-            Dataset::Services => $this->services(),
-            Dataset::Addons => $this->addons(),
-            Dataset::Bookings => throw new InvalidArgumentException('Bookings are exported by the booking exporter.'),
-        };
+        return [
+            'name', 'slug', 'category_slug', 'short_description', 'description', 'inclusions', 'exclusions',
+            'instructions', 'pricing_method', 'price', 'hourly_rate', 'estimated_minutes', 'allows_recurring',
+            'seo_title', 'seo_description', 'is_active', 'sort_order',
+        ];
     }
 
     /**
      * @return iterable<int, list<string>>
      */
-    private function categories(): iterable
-    {
-        $map = ServiceCategory::query()->get()->keyBy(fn (ServiceCategory $category): int => (int) $category->id);
-
-        foreach (ServiceCategory::flattenTree(tree: $map) as $row) {
-            $category = $row['category'];
-            $parent = $category->parent_id !== null ? $map->get((int) $category->parent_id) : null;
-
-            yield [
-                $category->name,
-                $category->slug,
-                $parent?->slug ?? '',
-                $category->description ?? '',
-                $category->seo_title ?? '',
-                $category->seo_description ?? '',
-                (string) $category->sort_order,
-                $category->is_active ? '1' : '0',
-            ];
-        }
-    }
-
-    /**
-     * @return iterable<int, list<string>>
-     */
-    private function services(): iterable
+    public function rows(): iterable
     {
         $services = Service::query()->with('category')->ordered()->get();
 
@@ -76,31 +48,6 @@ final class CatalogExporter
                 $service->seo_description ?? '',
                 $service->is_active ? '1' : '0',
                 (string) $service->sort_order,
-            ];
-        }
-    }
-
-    /**
-     * @return iterable<int, list<string>>
-     */
-    private function addons(): iterable
-    {
-        $addons = ServiceAddon::query()
-            ->with(['services' => fn ($query) => $query->orderBy('slug')])
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
-
-        foreach ($addons as $addon) {
-            yield [
-                $addon->name,
-                $addon->slug,
-                $addon->description ?? '',
-                $addon->pricing_method->value,
-                $addon->price_cents !== null ? Money::toDecimal($addon->price_cents) : '',
-                $addon->is_active ? '1' : '0',
-                (string) $addon->sort_order,
-                $addon->services->pluck('slug')->implode('|'),
             ];
         }
     }
