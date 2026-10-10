@@ -10,7 +10,6 @@ use App\Models\Booking;
 use App\Models\User;
 use App\Notifications\Customer\BookingCancelledNotification;
 use App\Services\Payments\PaymentService;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Administrator actions on bookings. Payment-driven transitions are not available here.
@@ -64,18 +63,17 @@ class AdminBookingService
             throw new BookingActionException('Refunds can only be issued when cancelling a paid booking.');
         }
 
-        DB::transaction(function () use ($booking, $to, $admin, $reason, $refundCents, $payment): void {
-            if ($refundCents > 0 && $payment !== null) {
-                $this->payments->refund($payment, $refundCents, $admin);
-            }
+        // The refund talks to the payment provider, so it runs before (not inside) the status transaction.
+        if ($refundCents > 0 && $payment !== null) {
+            $this->payments->refund($payment, $refundCents, $admin);
+        }
 
-            $label = match ($to) {
-                BookingStatus::Confirmed => 'Cancellation request declined',
-                default => 'Updated by admin',
-            };
+        $label = match ($to) {
+            BookingStatus::Confirmed => 'Cancellation request declined',
+            default => 'Updated by admin',
+        };
 
-            $this->stateMachine->transition($booking, $to, $admin, $reason ?: $label);
-        });
+        $this->stateMachine->transition($booking, $to, $admin, $reason ?: $label);
 
         if ($to === BookingStatus::Cancelled) {
             $this->notifier->customer($booking, new BookingCancelledNotification($booking, $refundCents > 0 ? $refundCents : null));

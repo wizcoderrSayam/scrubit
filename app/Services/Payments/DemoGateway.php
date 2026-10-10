@@ -58,6 +58,7 @@ class DemoGateway implements PaymentGateway
             amountCents: isset($payload['amount_cents']) ? (int) $payload['amount_cents'] : null,
             failureReason: isset($payload['failure_reason']) ? (string) $payload['failure_reason'] : null,
             payload: $payload,
+            currency: isset($payload['currency']) ? (string) $payload['currency'] : null,
         );
     }
 

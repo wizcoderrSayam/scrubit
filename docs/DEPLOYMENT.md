@@ -41,7 +41,8 @@ Every seeder is safe to re-run and never overwrites content edited in the admin.
 | `MAIL_*` | Your email provider |
 | `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` | First administrator, used once by `db:seed`. Remove the password afterwards |
 | `BUSINESS_*` | Initial defaults only. Live values are edited in **Admin → Settings → Business** |
-| `PAYMENT_DRIVER` | `demo` (the only built-in driver, see §6) |
+| `PAYMENT_DRIVER` | `stripe` for live payments, `demo` for staging (see §6) |
+| `STRIPE_SECRET` / `STRIPE_WEBHOOK_SECRET` | Stripe secret key (`sk_live_…` / `sk_test_…`) and webhook signing secret (`whsec_…`) |
 | `PAYMENT_CHECKOUT_TTL_MINUTES` | Checkout session lifetime (default 30) |
 | `DEMO_WEBHOOK_SECRET` | Random string used to sign demo webhooks (falls back to `APP_KEY`) |
 | `DEMO_GATEWAY_ALLOW_PRODUCTION` | Keep `false`. The demo gateway refuses to run in production otherwise |
@@ -97,7 +98,7 @@ Serve over HTTPS only. `storage/` and `bootstrap/cache/` must be writable by the
 - **Demo driver:** a simulated hosted checkout (success, failure, cancel, pending) with HMAC-signed webhooks. Use it for staging and acceptance tests only.
 - **Webhook endpoint:** `POST {APP_URL}/webhooks/payments/{driver}`. It is CSRF-exempt and signature-verified, and stores each event once in `payment_events`, so duplicates are ignored. Events for unknown payments get HTTP 409 so the provider retries.
 - Bookings are confirmed **only** by a verified webhook event, never by the customer returning to the site.
-- **Before launch:** implement a live driver (e.g. Stripe Checkout) as a class implementing `App\Services\Payments\PaymentGateway`, register it under `drivers` in `config/payments.php`, set `PAYMENT_DRIVER`, and point the provider's webhook at the URL above. Use the provider's idempotency keys for refunds. **Admin → Settings → Payments** shows the active driver and webhook URL.
+- **Stripe (live):** set `PAYMENT_DRIVER=stripe`, `STRIPE_SECRET` and `STRIPE_WEBHOOK_SECRET`. In the Stripe dashboard add a webhook endpoint `{APP_URL}/webhooks/payments/stripe` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` and `checkout.session.expired`. Test end to end with test-mode keys and card `4242 4242 4242 4242` before switching to live keys. **Admin → Settings → Payments** shows the active driver and webhook URL.
 
 ## 7. Releasing an update
 
@@ -116,7 +117,7 @@ php artisan up
 
 - [ ] HTTPS enforced, `APP_DEBUG=false`, `APP_ENV=production`, secure session cookies
 - [ ] Admin password changed after first login; `ADMIN_PASSWORD` removed from `.env`
-- [ ] Live payment driver configured and tested end to end in the provider's test mode
+- [ ] Stripe keys and webhook configured, and a full booking paid end to end in Stripe test mode
 - [ ] Queue worker and scheduler running (`php artisan schedule:list`)
 - [ ] Test emails received for a booking, a quote and a payment
 - [ ] Real prices, add-ons, tax rates and availability set in the admin

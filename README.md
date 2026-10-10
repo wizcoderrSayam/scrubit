@@ -84,7 +84,8 @@ Every seeder is safe to re-run and never overwrites content edited in the admin.
 | `SESSION_SECURE_COOKIE` / `SESSION_ENCRYPT` | `true` / `true` |
 | `MAIL_*` | Your email provider |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | First admin, used once by `db:seed`. Remove the password afterwards |
-| `PAYMENT_DRIVER` | `demo` is the only built-in driver |
+| `PAYMENT_DRIVER` | `stripe` (live) or `demo` (staging) |
+| `STRIPE_SECRET` / `STRIPE_WEBHOOK_SECRET` | Stripe secret key and webhook signing secret |
 | `DEMO_WEBHOOK_SECRET` | Random string (falls back to `APP_KEY`) |
 | `DEMO_GATEWAY_ALLOW_PRODUCTION` | Keep `false`; the demo gateway refuses to run in production otherwise |
 
@@ -97,7 +98,7 @@ Never commit `.env`.
 ### Payments
 - Webhook endpoint: `POST {APP_URL}/webhooks/payments/{driver}`. It is CSRF-exempt, verifies the signature and stores each event once, so duplicate deliveries are ignored. Events for unknown payments get HTTP 409 so the provider retries.
 - Bookings are confirmed only by a verified webhook, never by the customer returning to the site.
-- Before launch, add a live driver (e.g. Stripe Checkout) implementing `App\Services\Payments\PaymentGateway`, register it in `config/payments.php`, and set `PAYMENT_DRIVER`. Refunds then call the provider; make that call idempotent with the provider's idempotency keys.
+- Stripe Checkout is built in: set the Stripe keys, point a Stripe webhook at `/webhooks/payments/stripe` (completed, async succeeded/failed, expired events), and switch `PAYMENT_DRIVER=stripe`. Test with Stripe test keys first.
 
 ### Releasing an update
 ```bash
@@ -111,7 +112,7 @@ php artisan up
 ### Pre-launch checklist
 - [ ] HTTPS enforced, `APP_DEBUG=false`, secure session cookies
 - [ ] Admin password changed after first login
-- [ ] A live payment driver tested end to end in the provider's test mode
+- [ ] Stripe keys and webhook configured; a booking paid end to end in Stripe test mode
 - [ ] Queue worker and scheduler running (`php artisan schedule:list`)
 - [ ] Real prices, add-ons, tax rates and availability set in the admin
 - [ ] Draft Terms, Privacy and Cancellation pages reviewed by a legal advisor and the DRAFT notice removed

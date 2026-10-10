@@ -18,5 +18,6 @@ final readonly class GatewayEvent
         public ?int $amountCents,
         public ?string $failureReason,
         public array $payload,
+        public ?string $currency = null,
     ) {}
 }

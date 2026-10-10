@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Webhooks;
 
 use App\Http\Controllers\Controller;
+use App\Services\Payments\IgnoredWebhookEvent;
 use App\Services\Payments\InvalidWebhookSignature;
 use App\Services\Payments\PaymentGatewayManager;
 use App\Services\Payments\UnknownPaymentException;
@@ -19,6 +20,8 @@ class PaymentWebhookController extends Controller
 
         try {
             $event = $gateways->driver($provider)->parseWebhook($request);
+        } catch (IgnoredWebhookEvent) {
+            return response()->json(['received' => true, 'ignored' => true]);
         } catch (InvalidWebhookSignature $exception) {
             Log::warning('Rejected payment webhook', ['provider' => $provider, 'reason' => $exception->getMessage()]);
 

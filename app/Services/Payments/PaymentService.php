@@ -64,11 +64,15 @@ class PaymentService
                     throw new BookingActionException('Your previous payment is still being processed. Please wait a moment.');
                 }
 
-                $reusable = $open->checkout_url !== null
-                    && $open->checkout_expires_at?->isFuture()
-                    && $open->amount_cents === $amount
+                $samePurchase = $open->amount_cents === $amount
                     && $open->booking_quote_id === $quote?->id
                     && $open->provider === $gateway->name();
+
+                // An attempt whose session creation never confirmed is retried with the same
+                // idempotency key, so the provider returns the session it may already have made.
+                $unfinishedCreation = $open->checkout_url === null && $open->created_at?->gt(now()->subHour());
+
+                $reusable = $samePurchase && ($unfinishedCreation || $open->checkout_expires_at?->isFuture());
 
                 if ($reusable) {
                     return $open;
@@ -98,8 +102,9 @@ class PaymentService
                 route('checkout.cancel', ['booking' => $booking->reference, 'payment' => $payment->idempotency_key]),
             );
         } catch (Throwable $exception) {
-            $payment->forceFill(['status' => PaymentStatus::Failed, 'failure_reason' => 'Could not start checkout'])->save();
-            Log::error('Checkout creation failed', ['payment_id' => $payment->id, 'exception' => $exception->getMessage()]);
+            // Keep the payment pending: the provider may have created the session even though the
+            // response was lost. A retry replays the same idempotency key and recovers that session.
+            Log::error('Checkout creation failed', ['payment_id' => $payment->id, 'exception' => class_basename($exception)]);
 
             throw new BookingActionException('We could not start the payment. Please try again in a moment.');
         }
@@ -165,23 +170,49 @@ class PaymentService
      */
     public function refund(Payment $payment, int $amountCents, User $admin): Payment
     {
-        return DB::transaction(function () use ($payment, $amountCents, $admin): Payment {
+        // 1. Reserve the refund under a lock so two admins cannot refund the same money.
+        $reserved = DB::transaction(function () use ($payment, $amountCents): Payment {
             /** @var Payment $locked */
             $locked = Payment::query()->lockForUpdate()->findOrFail($payment->getKey());
+
+            if (! empty($locked->meta['refund_in_progress'])) {
+                throw new BookingActionException('Another refund for this payment is still being processed.');
+            }
 
             if ($amountCents <= 0 || $amountCents > $locked->refundableCents()) {
                 throw new BookingActionException('The refund amount must be between $0.01 and the remaining paid amount.');
             }
 
-            $this->gateways->driver($locked->provider)->refund($locked, $amountCents);
+            $locked->forceFill(['meta' => [...(array) $locked->meta, 'refund_in_progress' => $amountCents]])->save();
+
+            return $locked;
+        });
+
+        // 2. Call the provider without holding a database lock.
+        try {
+            $this->gateways->driver($reserved->provider)->refund($reserved, $amountCents);
+        } catch (Throwable $exception) {
+            $meta = (array) $reserved->fresh()->meta;
+            unset($meta['refund_in_progress']);
+            Payment::query()->whereKey($reserved->getKey())->update(['meta' => json_encode($meta)]);
+
+            throw $exception;
+        }
+
+        // 3. Record the completed refund.
+        return DB::transaction(function () use ($payment, $amountCents, $admin): Payment {
+            /** @var Payment $locked */
+            $locked = Payment::query()->lockForUpdate()->findOrFail($payment->getKey());
+            $meta = (array) $locked->meta;
+            unset($meta['refund_in_progress']);
 
             $refunded = $locked->refunded_cents + $amountCents;
             $locked->forceFill([
                 'refunded_cents' => $refunded,
                 'status' => $refunded >= $locked->amount_cents ? PaymentStatus::Refunded : PaymentStatus::PartiallyRefunded,
                 'needs_attention' => $refunded >= $locked->amount_cents ? false : $locked->needs_attention,
-                'meta' => [...(array) $locked->meta, 'refunds' => [
-                    ...(array) ($locked->meta['refunds'] ?? []),
+                'meta' => [...$meta, 'refunds' => [
+                    ...(array) ($meta['refunds'] ?? []),
                     ['amount_cents' => $amountCents, 'by' => $admin->getKey(), 'at' => now()->toIso8601String()],
                 ]],
             ])->save();
@@ -199,7 +230,9 @@ class PaymentService
     {
         $expired = Payment::query()
             ->where('status', PaymentStatus::Pending)
-            ->where('checkout_expires_at', '<', now()->subMinutes(5))
+            ->where(fn ($query) => $query
+                ->where('checkout_expires_at', '<', now()->subMinutes(5))
+                ->orWhere(fn ($inner) => $inner->whereNull('checkout_url')->where('created_at', '<', now()->subHours(2))))
             ->update(['status' => PaymentStatus::Cancelled, 'failure_reason' => 'Checkout session expired', 'updated_at' => now()]);
 
         // A payment stuck in "processing" would block the booking forever; release it and flag it for review.
@@ -238,6 +271,10 @@ class PaymentService
 
         $previousStatus = $payment->status;
         $payment->forceFill(['status' => PaymentStatus::Succeeded, 'paid_at' => now()]);
+
+        if ($event->currency !== null && strtoupper($event->currency) !== strtoupper($payment->currency)) {
+            return $this->flagForAttention($payment, $booking, "Provider reported currency {$event->currency} but {$payment->currency} was expected.");
+        }
 
         if ($event->amountCents !== null && $event->amountCents !== $payment->amount_cents) {
             return $this->flagForAttention($payment, $booking, "Provider reported {$event->amountCents} cents but {$payment->amount_cents} was expected.");
