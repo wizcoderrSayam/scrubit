@@ -1,58 +1,121 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Scrubit: Cleaning Service Booking Platform
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel 13 rebuild of [scrubit.ca](https://scrubit.ca). Customers pick a cleaning service, describe their needs in a guided chat, review the booking, pay online (or approve a quote first) and get a confirmation. Administrators manage services, bookings, quotes, payments, customers, content and settings.
 
-## About Laravel
+**Booking flow:** Select Service → Customize (chat) → Review → Payment → Confirmation
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Laravel 13 · PHP 8.4 · MySQL · Blade + Tailwind CSS 4 + Alpine.js · Vite · Laravel Fortify (auth) · database queue · PHPUnit
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Local setup
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env && php artisan key:generate
+# set DB_* and ADMIN_EMAIL / ADMIN_PASSWORD in .env
+php artisan migrate
+php artisan db:seed
+php artisan storage:link
+npm install && npm run build      # or: npm run dev
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+- Site: `http://127.0.0.1:8000`. Admin: `/admin`, logging in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+- Emails go to `storage/logs/laravel.log` with `MAIL_MAILER=log`. Run `php artisan queue:work` to process them.
+- Payments use the **demo gateway** by default: the checkout page offers buttons to simulate a successful, failed, cancelled or pending payment.
 
-## Contributing
+## Tests
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+php artisan test --compact
+vendor/bin/pint --dirty --format agent
+```
 
-## Code of Conduct
+The suite covers:
+- pricing, taxes and add-ons
+- drafts and the chat flow
+- booking, quote and payment state rules
+- webhook signatures and duplicate deliveries
+- guest booking access
+- admin authorization
+- content escaping
+- SEO routes
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Key concepts
 
-## Security Vulnerabilities
+| Topic | Where |
+|---|---|
+| Architecture, schema, state machines | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Content inventory from the old site | [docs/SITE-INVENTORY.md](docs/SITE-INVENTORY.md) |
+| Full production guide | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
+| Booking state machine | `app/Enums/BookingStatus.php`, `app/Services/BookingStateMachine.php` |
+| Pricing (server-side only) | `app/Services/Pricing/BookingPricingService.php` |
+| Guided chat (replaceable by AI later) | `app/Services/Chat/` (`ChatResponder` interface) |
+| Payments and webhooks | `app/Services/Payments/` |
+| Business settings (incl. "Starting $25/hr add on services" note) | Admin → Settings → Business |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Scheduled tasks
 
-## License
+`quotes:expire` (hourly), `payments:expire-checkouts` (every 15 min; also releases payments stuck in "processing" for 24h and flags them for review) and `bookings:prune-drafts` (daily) run via `php artisan schedule:run`.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Deployment
+
+### Requirements
+PHP 8.3+ with `pdo_mysql`, `mbstring`, `openssl`, `gd` (WebP), `intl`, `bcmath` and `fileinfo` · MySQL 8+ / MariaDB 10.6+ · Composer 2 · Node 20+ (build only) · Nginx or Apache with its document root at `public/` · cron · a process supervisor · an SMTP or transactional email service.
+
+### First install
+```bash
+composer install --no-dev --optimize-autoloader
+cp .env.example .env && php artisan key:generate   # then edit .env (below)
+php artisan migrate --force
+php artisan db:seed --force      # services, pages, FAQs, testimonials, email templates, GST, availability, first admin
+php artisan storage:link
+npm ci && npm run build
+php artisan optimize
+```
+Every seeder is safe to re-run and never overwrites content edited in the admin. The admin seeder only creates the account when no user with `ADMIN_EMAIL` exists.
+
+### Production `.env`
+| Key | Value |
+|---|---|
+| `APP_ENV` / `APP_DEBUG` | `production` / `false` |
+| `APP_URL` | `https://your-domain` (used in emails, the sitemap and canonical URLs) |
+| `SESSION_SECURE_COOKIE` / `SESSION_ENCRYPT` | `true` / `true` |
+| `MAIL_*` | Your email provider |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | First admin, used once by `db:seed`. Remove the password afterwards |
+| `PAYMENT_DRIVER` | `demo` is the only built-in driver |
+| `DEMO_WEBHOOK_SECRET` | Random string (falls back to `APP_KEY`) |
+| `DEMO_GATEWAY_ALLOW_PRODUCTION` | Keep `false`; the demo gateway refuses to run in production otherwise |
+
+Never commit `.env`.
+
+### Background processes
+- Queue worker (emails): `php artisan queue:work --sleep=3 --tries=3 --max-time=3600`, kept running under Supervisor or systemd.
+- Scheduler (cron): `* * * * * cd /path/to/scrubit && php artisan schedule:run >> /dev/null 2>&1`
+
+### Payments
+- Webhook endpoint: `POST {APP_URL}/webhooks/payments/{driver}`. It is CSRF-exempt, verifies the signature and stores each event once, so duplicate deliveries are ignored. Events for unknown payments get HTTP 409 so the provider retries.
+- Bookings are confirmed only by a verified webhook, never by the customer returning to the site.
+- Before launch, add a live driver (e.g. Stripe Checkout) implementing `App\Services\Payments\PaymentGateway`, register it in `config/payments.php`, and set `PAYMENT_DRIVER`. Refunds then call the provider; make that call idempotent with the provider's idempotency keys.
+
+### Releasing an update
+```bash
+php artisan down
+git pull && composer install --no-dev --optimize-autoloader
+php artisan migrate --force && npm ci && npm run build
+php artisan optimize && php artisan queue:restart
+php artisan up
+```
+
+### Pre-launch checklist
+- [ ] HTTPS enforced, `APP_DEBUG=false`, secure session cookies
+- [ ] Admin password changed after first login
+- [ ] A live payment driver tested end to end in the provider's test mode
+- [ ] Queue worker and scheduler running (`php artisan schedule:list`)
+- [ ] Real prices, add-ons, tax rates and availability set in the admin
+- [ ] Draft Terms, Privacy and Cancellation pages reviewed by a legal advisor and the DRAFT notice removed
+- [ ] Business claims and testimonials confirmed as accurate
+- [ ] Old URLs redirect with 301 (`/recurring-cleaning`, `/product/<slug>`, `/enquiry`)
+- [ ] `/sitemap.xml` submitted to Google Search Console
+- [ ] Daily backups of the database and `storage/app/public` (service images)

@@ -180,5 +180,20 @@ CSRF on all web forms (webhooks excepted) · Form Requests everywhere, with `$fi
 | 6 | Admin & notifications | Booking/customer management, dashboard metrics, status history, queued emails from templates. |
 | 7 | Testing & deploy | Full suite, responsive QA, legacy redirects, `docs/DEPLOYMENT.md`. |
 
-## 8. Test matrix (target)
+## 8. Implementation notes (as built)
+
+Where the build refined the design above:
+
+- **Payments needing attention:** `payments.needs_attention` (boolean, indexed) and `meta.attention_reason` flag late, orphaned, amount-mismatched or timed-out successes. The admin works them from Payments → "Needs attention".
+- **Lock order:** every payment path locks the **booking row first**, then payment rows (`startCheckout`, `handleEvent`, customer cancel, booking submit and chat updates), so concurrent operations cannot deadlock.
+- **Quote expiry vs. payment:** confirmation also requires the quote to be unexpired. Demo checkouts past `checkout_expires_at` cannot be completed.
+- **Stuck payments:** `payments:expire-checkouts` cancels pending checkouts 5 minutes after expiry and fails `processing` payments with no update for 24 h (flagged for review), so a booking is never blocked indefinitely.
+- **Unknown payments:** an event for a payment we have no record of is rolled back (not stored) and answered with HTTP 409, so the provider retries.
+- **Guest access:** a submitted booking is viewable by the owner, an admin, the browser session that submitted it, the plain access token (first email), or a 60-day **signed URL** (later emails). Signed links act as a bearer credential so guests can pay a quote from email. Repeat bookings get no inherited token.
+- **Catalog cache:** `cache.serializable_classes` is `false`, so `App\Support\CatalogCache` stores only arrays and re-hydrates models (`CatalogCache::models`). A version key is bumped on any catalog or content save.
+- **Enquiries:** the Contact and Request-a-quote forms write to an `enquiries` table (honeypot plus 5/min/IP throttle) and notify admins.
+- **Settings added:** `booking.min_lead_days`, `booking.max_advance_days`, `quote.default_expiry_days` and `home.*` content keys. The add-on note is a template, `Starting {rate}/hr add on services` + `addon_note.rate_cents`.
+- **Not yet built:** a live payment driver. With the demo driver, refunds only record the amount. A real driver must make its refund call idempotent, because it currently runs inside the DB transaction.
+
+## 9. Test matrix (target)
 Pricing (each method, add-ons, tax rounding, tampered input ignored) · draft persistence + claim on login · chat gating · booking/quote/payment transitions (valid + invalid) · quote expiry command · demo payment success/fail/cancel/pending · duplicate webhook → one payment, one email · success after cancel or quote expiry → booking unchanged + needs_refund flag · quote expiry skipped while payment open · demo gateway blocked in production · bad signature → 400 · success URL alone ≠ paid · guest token vs. guessed reference → 404 · customer vs. admin route authorisation.
