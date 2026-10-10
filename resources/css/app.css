@@ -4,6 +4,111 @@
 @source '../../storage/framework/views/*.php';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+    --font-display: 'Poppins', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+    /* Scrubit brand blues (from scrubit.ca) */
+    --color-brand-50: #f0f5fa;
+    --color-brand-100: #dce8f6;
+    --color-brand-200: #b9d1ee;
+    --color-brand-300: #85b0e2;
+    --color-brand-400: #3c7cd0;
+    --color-brand-500: #1f6fd0;
+    --color-brand-600: #046bd2;
+    --color-brand-700: #045cb4;
+    --color-brand-800: #104a94;
+    --color-brand-900: #0c3870;
+
+    /* Logo bubble accent: decorative use only (fails text contrast on white) */
+    --color-bubble-400: #f66bc4;
+    --color-bubble-500: #f33fae;
+
+    /* Neutrals */
+    --color-ink-900: #1e293b;
+    --color-ink-700: #334155;
+    --color-ink-500: #64748b;
+    --color-line: #d1d5db;
+
+    /* Admin panel (Elephant-style layout, Scrubit colours) */
+    --font-admin-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --color-admin-sidebar-from: #161b26;
+    --color-admin-sidebar-to: #0c3870;
+    --color-admin-canvas: #f8fafc;
+    --color-admin-accent: #0f766e;
+    --color-admin-stat-1: #0f766e;
+    --color-admin-stat-2: #1d4ed8;
+    --color-admin-stat-3: #c2410c;
+    --color-admin-stat-4: #7e22ce;
+    --color-admin-stat-5: #15803d;
+    --color-admin-stat-6: #be123c;
+}
+
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        @apply bg-white font-sans text-ink-900 antialiased;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        @apply font-display text-ink-900;
+    }
+
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-brand-600;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@layer components {
+    .content-body {
+        @apply space-y-4 leading-relaxed text-ink-700;
+    }
+
+    .content-body h2 {
+        @apply pt-4 text-2xl font-semibold;
+    }
+
+    .content-body h3 {
+        @apply pt-2 text-xl font-semibold;
+    }
+
+    .content-body ul {
+        @apply list-disc space-y-1 pl-6;
+    }
+
+    .content-body ol {
+        @apply list-decimal space-y-1 pl-6;
+    }
+
+    .content-body a {
+        @apply font-medium text-brand-700 underline hover:text-brand-900;
+    }
+
+    .content-body strong {
+        @apply font-semibold text-ink-900;
+    }
+
+    .content-body blockquote {
+        @apply border-l-4 border-brand-200 pl-4 italic;
+    }
+
+    .content-body p {
+        @apply leading-relaxed;
+    }
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
 }
