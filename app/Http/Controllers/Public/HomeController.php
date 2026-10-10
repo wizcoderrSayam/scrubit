@@ -24,7 +24,7 @@ class HomeController extends Controller
                     ->map(fn (ServiceCategory $category): int => (int) $category->id)
                     ->all();
 
-                return Service::query()->active()->whereIn('service_category_id', $visibleIds)->ordered()->get();
+                return Service::query()->active()->inCategories($visibleIds)->ordered()->get();
             }),
             'testimonials' => CatalogCache::models('home.testimonials', Testimonial::class, fn () => Testimonial::query()->published()->get()),
         ]);

@@ -28,7 +28,7 @@ class ServiceController extends Controller
     public function index(Request $request): View
     {
         $services = Service::query()
-            ->with('category')
+            ->with('categories')
             ->withCount('bookings')
             ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.$request->string('q').'%'))
             ->ordered()
@@ -89,7 +89,7 @@ class ServiceController extends Controller
 
     public function edit(Service $service): View
     {
-        return view('admin.services.form', $this->formData($service->load(['images', 'addons'])));
+        return view('admin.services.form', $this->formData($service->load(['images', 'addons', 'categories'])));
     }
 
     public function update(SaveServiceRequest $request, Service $service): RedirectResponse
@@ -120,6 +120,7 @@ class ServiceController extends Controller
     private function syncRelations(Service $service, SaveServiceRequest $request): void
     {
         $service->addons()->sync($request->validated('addons', []));
+        $service->syncCategories(array_map(intval(...), $request->validated('categories', [])));
 
         if ($request->boolean('remove_featured_image') && $service->featured_image) {
             $this->images->delete($service->featured_image);

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection as SupportCollection;
 
@@ -55,11 +56,13 @@ class ServiceCategory extends Model
     }
 
     /**
-     * @return HasMany<Service, $this>
+     * Services listed in this category, including those that use it as an additional category.
+     *
+     * @return BelongsToMany<Service, $this>
      */
-    public function services(): HasMany
+    public function services(): BelongsToMany
     {
-        return $this->hasMany(Service::class);
+        return $this->belongsToMany(Service::class, 'service_service_category');
     }
 
     /**

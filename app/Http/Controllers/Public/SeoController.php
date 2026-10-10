@@ -37,7 +37,7 @@ class SeoController extends Controller
                     $urls->push(['loc' => route('services.category', $category), 'lastmod' => $category->updated_at]);
                 });
 
-            Service::query()->active()->whereIn('service_category_id', $visibleIds)->ordered()->get()
+            Service::query()->active()->inCategories($visibleIds)->ordered()->get()
                 ->each(function (Service $service) use ($urls): void {
                     $urls->push(['loc' => route('services.show', $service), 'lastmod' => $service->updated_at]);
                 });

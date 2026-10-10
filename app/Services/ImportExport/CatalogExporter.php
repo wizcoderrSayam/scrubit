@@ -3,6 +3,7 @@
 namespace App\Services\ImportExport;
 
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Support\Money;
 
 /**
@@ -27,13 +28,20 @@ final class CatalogExporter
      */
     public function rows(): iterable
     {
-        $services = Service::query()->with('category')->ordered()->get();
+        $services = Service::query()->with('categories')->ordered()->get();
 
         foreach ($services as $service) {
             yield [
                 $service->name,
                 $service->slug,
-                $service->category->slug,
+                $service->categories
+                    ->sortBy(fn (ServiceCategory $category): string => sprintf(
+                        '%d-%s',
+                        (int) $category->id === (int) $service->service_category_id ? 0 : 1,
+                        $category->slug,
+                    ))
+                    ->pluck('slug')
+                    ->implode('|'),
                 $service->short_description,
                 $service->description ?? '',
                 implode('|', $service->inclusions ?? []),

@@ -29,7 +29,8 @@ class SaveServiceRequest extends AdminRequest
         $service = $this->route('service');
 
         return [
-            'service_category_id' => ['required', 'integer', Rule::exists(ServiceCategory::class, 'id')],
+            'categories' => ['required', 'array', 'min:1'],
+            'categories.*' => ['integer', 'distinct', Rule::exists(ServiceCategory::class, 'id')],
             ...self::contentRules($service?->id, $this->input('pricing_method')),
             'chat_greeting' => ['nullable', 'string', 'max:500'],
             'chat_needs_prompt' => ['nullable', 'string', 'max:500'],
@@ -93,9 +94,14 @@ class SaveServiceRequest extends AdminRequest
     public function serviceAttributes(): array
     {
         $data = $this->validated();
+        $categoryIds = array_map(intval(...), $data['categories']);
+        $service = $this->route('service');
+        $currentPrimary = $service instanceof Service ? (int) $service->service_category_id : null;
 
         return [
-            'service_category_id' => $data['service_category_id'],
+            'service_category_id' => $currentPrimary !== null && in_array($currentPrimary, $categoryIds, true)
+                ? $currentPrimary
+                : $categoryIds[0],
             'name' => $data['name'],
             'slug' => $data['slug'],
             'short_description' => $data['short_description'],

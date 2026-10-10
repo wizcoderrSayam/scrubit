@@ -6,9 +6,10 @@ use App\Http\Requests\Admin\SaveServiceRequest;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Support\Money;
+use Closure;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 /**
  * Validates every service row, then upserts by slug in one transaction. Any error imports nothing.
@@ -23,6 +24,7 @@ final class ServiceImporter
         $errors = [];
         $this->flagDuplicateSlugs($rows, $errors);
         $prepared = [];
+        $categoryIds = ServiceCategory::query()->pluck('id', 'slug');
 
         foreach ($rows as $row) {
             $line = (int) $row['__row'];
@@ -34,7 +36,7 @@ final class ServiceImporter
 
             foreach ($this->validate($data, [
                 ...SaveServiceRequest::contentRules($existing?->id, $data['pricing_method'] ?? null),
-                'category_slug' => ['required', 'string', Rule::exists(ServiceCategory::class, 'slug')],
+                'category_slug' => ['required', 'string', $this->categorySlugRule($categoryIds)],
             ], (new SaveServiceRequest)->messages()) as $message) {
                 $errors[$line][] = $message;
             }
@@ -51,12 +53,14 @@ final class ServiceImporter
         $created = 0;
         $updated = 0;
 
-        DB::transaction(function () use ($prepared, &$created, &$updated): void {
-            $categoryIds = ServiceCategory::query()->pluck('id', 'slug');
-
+        DB::transaction(function () use ($prepared, $categoryIds, &$created, &$updated): void {
             foreach ($prepared as $data) {
+                $assignedCategoryIds = array_map(
+                    fn (string $slug): int => (int) $categoryIds[$slug],
+                    array_values(array_unique($this->pipeList($data['category_slug']))),
+                );
                 $attributes = [
-                    'service_category_id' => (int) $categoryIds[$data['category_slug']],
+                    'service_category_id' => $assignedCategoryIds[0],
                     'name' => $data['name'],
                     'slug' => $data['slug'],
                     'short_description' => $data['short_description'],
@@ -78,7 +82,8 @@ final class ServiceImporter
                 $service = Service::withTrashed()->where('slug', $data['slug'])->first();
 
                 if ($service === null) {
-                    Service::query()->create($attributes);
+                    $createdService = Service::query()->create($attributes);
+                    $createdService->syncCategories($assignedCategoryIds);
                     $created++;
 
                     continue;
@@ -96,7 +101,9 @@ final class ServiceImporter
                     $service->save();
                 }
 
-                if ($restored || $service->wasChanged()) {
+                $categoryChanges = $service->syncCategories($assignedCategoryIds);
+
+                if ($restored || $service->wasChanged() || $categoryChanges['attached'] !== [] || $categoryChanges['detached'] !== []) {
                     $updated++;
                 }
             }
@@ -148,6 +155,30 @@ final class ServiceImporter
         unset($data['__row']);
 
         return $data;
+    }
+
+    /**
+     * Accept one category slug, or several separated by |.
+     *
+     * @param  Collection<string, int>  $categoryIds
+     */
+    private function categorySlugRule(Collection $categoryIds): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($categoryIds): void {
+            $slugs = $this->pipeList($value);
+
+            if ($slugs === []) {
+                $fail('A category slug is required.');
+
+                return;
+            }
+
+            foreach ($slugs as $slug) {
+                if (! $categoryIds->has($slug)) {
+                    $fail("The category {$slug} does not exist.");
+                }
+            }
+        };
     }
 
     /**

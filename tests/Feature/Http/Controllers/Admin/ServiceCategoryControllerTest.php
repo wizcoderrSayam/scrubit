@@ -86,6 +86,20 @@ class ServiceCategoryControllerTest extends TestCase
         $this->assertModelExists($category);
     }
 
+    public function test_delete_is_blocked_when_a_service_uses_the_category_as_an_extra(): void
+    {
+        $primary = ServiceCategory::factory()->create();
+        $extra = ServiceCategory::factory()->create();
+        $service = Service::factory()->for($primary, 'category')->create();
+        $service->syncCategories([$primary->id, $extra->id]);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->delete(route('admin.categories.destroy', $extra))
+            ->assertSessionHasErrors(['category' => 'Move or delete this category\'s services before deleting it.']);
+
+        $this->assertModelExists($extra);
+    }
+
     public function test_index_lists_sub_categories_under_their_parent(): void
     {
         $parent = ServiceCategory::factory()->create(['name' => 'Residential', 'sort_order' => 0]);

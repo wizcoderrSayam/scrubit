@@ -51,6 +51,21 @@ class PublicSiteTest extends TestCase
             ->assertSee('application/ld+json', false);
     }
 
+    public function test_a_service_stays_reachable_when_another_assigned_category_is_visible(): void
+    {
+        $hidden = ServiceCategory::factory()->inactive()->create();
+        $visible = ServiceCategory::factory()->create(['name' => 'Commercial']);
+        $service = Service::factory()->for($hidden, 'category')->create([
+            'name' => 'Shared Cleaning',
+            'slug' => 'shared-cleaning',
+        ]);
+        $service->syncCategories([$hidden->id, $visible->id]);
+
+        $this->get(route('services.show', $service))->assertOk()->assertSee('Shared Cleaning');
+        $this->get(route('services.category', $visible))->assertOk()->assertSee('Shared Cleaning');
+        $this->get(route('booking.start', $service))->assertRedirect();
+    }
+
     public function test_services_in_hidden_categories_are_not_reachable(): void
     {
         $service = Service::factory()->for(ServiceCategory::factory()->inactive(), 'category')->create();

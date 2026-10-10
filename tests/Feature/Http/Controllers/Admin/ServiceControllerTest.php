@@ -24,7 +24,7 @@ class ServiceControllerTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return [
-            'service_category_id' => ServiceCategory::factory()->create()->id,
+            'categories' => [ServiceCategory::factory()->create()->id],
             'name' => 'Window Cleaning',
             'slug' => '',
             'short_description' => 'Streak-free windows inside and out.',
@@ -64,6 +64,56 @@ class ServiceControllerTest extends TestCase
         Storage::disk('public')->assertExists($service->featured_image);
 
         $this->get(route('services.show', $service))->assertOk()->assertSee('Window Cleaning')->assertSee('Frames and tracks');
+    }
+
+    public function test_a_service_is_listed_under_every_selected_category(): void
+    {
+        $residential = ServiceCategory::factory()->create(['name' => 'Residential']);
+        $commercial = ServiceCategory::factory()->create(['name' => 'Commercial']);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->post(route('admin.services.store'), $this->payload([
+                'categories' => [$residential->id, $commercial->id],
+                'name' => 'Shared Cleaning',
+                'slug' => 'shared-cleaning',
+            ]))
+            ->assertRedirect();
+
+        $service = Service::query()->where('slug', 'shared-cleaning')->sole();
+        $this->assertSame($residential->id, $service->service_category_id);
+        $this->assertEqualsCanonicalizing([$residential->id, $commercial->id], $service->categories->pluck('id')->all());
+
+        $this->get(route('services.category', $residential))->assertOk()->assertSee('Shared Cleaning');
+        $this->get(route('services.category', $commercial))->assertOk()->assertSee('Shared Cleaning');
+        $this->get(route('services.index'))->assertOk()->assertSee('Residential')->assertSee('Commercial')->assertSee('Shared Cleaning');
+    }
+
+    public function test_saving_keeps_the_primary_category_when_it_is_still_selected(): void
+    {
+        $primary = ServiceCategory::factory()->create();
+        $extra = ServiceCategory::factory()->create();
+        $service = Service::factory()->for($primary, 'category')->create(['slug' => 'window-cleaning']);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->put(route('admin.services.update', $service), $this->payload([
+                'slug' => 'window-cleaning',
+                'categories' => [$extra->id, $primary->id],
+            ]))
+            ->assertRedirect();
+
+        $service->refresh();
+        $this->assertSame($primary->id, $service->service_category_id);
+        $this->assertEqualsCanonicalizing([$primary->id, $extra->id], $service->categories->pluck('id')->all());
+    }
+
+    public function test_a_service_requires_at_least_one_category(): void
+    {
+        $payload = $this->payload();
+        unset($payload['categories']);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->post(route('admin.services.store'), $payload)
+            ->assertSessionHasErrors(['categories' => 'The categories field is required.']);
     }
 
     public function test_fixed_pricing_requires_a_price(): void
@@ -130,6 +180,20 @@ class ServiceControllerTest extends TestCase
         $this->assertSame('fixed', $rows[0]['pricing_method']);
     }
 
+    public function test_export_lists_the_primary_category_before_the_others(): void
+    {
+        $primary = ServiceCategory::factory()->create(['slug' => 'residential']);
+        $extra = ServiceCategory::factory()->create(['slug' => 'commercial']);
+        $service = Service::factory()->for($primary, 'category')->create(['slug' => 'window-cleaning']);
+        $service->syncCategories([$primary->id, $extra->id]);
+
+        $response = $this->actingAs(User::factory()->admin()->create())
+            ->get(route('admin.services.export', ['format' => 'csv']));
+
+        $rows = $this->serviceSheet($response->streamedContent(), 'csv');
+        $this->assertSame('residential|commercial', $rows[0]['category_slug']);
+    }
+
     public function test_service_export_prefixes_formula_like_names(): void
     {
         Service::factory()->create(['name' => '=1+1', 'slug' => 'formula']);
@@ -181,6 +245,25 @@ class ServiceControllerTest extends TestCase
         $this->assertSame(['Interior glass', 'Frames'], $updated->inclusions);
         $this->assertSame(15000, $updated->price_cents);
         $this->assertSame($category->id, $created->service_category_id);
+    }
+
+    public function test_import_assigns_every_pipe_separated_category(): void
+    {
+        $residential = ServiceCategory::factory()->create(['slug' => 'residential']);
+        $commercial = ServiceCategory::factory()->create(['slug' => 'commercial']);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->post(route('admin.services.import'), [
+                'file' => $this->serviceCsv([
+                    $this->serviceRow('shared-cleaning', 'commercial|residential', 'custom_quote'),
+                ]),
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('status', 'Imported 1 new services and updated 0.');
+
+        $service = Service::query()->where('slug', 'shared-cleaning')->sole();
+        $this->assertSame($commercial->id, $service->service_category_id);
+        $this->assertEqualsCanonicalizing([$commercial->id, $residential->id], $service->categories->pluck('id')->all());
     }
 
     public function test_reimporting_a_service_export_changes_nothing(): void

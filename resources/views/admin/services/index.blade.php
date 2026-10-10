@@ -49,7 +49,7 @@
                 @forelse ($services as $service)
                     <tr>
                         <td class="px-4 py-3"><a href="{{ route('admin.services.edit', $service) }}" class="font-medium text-admin-accent hover:underline">{{ $service->name }}</a><span class="block text-xs text-ink-500">/services/{{ $service->slug }}</span></td>
-                        <td class="px-4 py-3">{{ $service->category?->name }}</td>
+                        <td class="px-4 py-3">{{ $service->categories->pluck('name')->join(', ') }}</td>
                         <td class="px-4 py-3">{{ $service->pricing_method->label() }}<span class="block text-xs text-ink-500">{{ $service->priceLabel() }}</span></td>
                         <td class="px-4 py-3">{{ $service->bookings_count }}</td>
                         <td class="px-4 py-3">

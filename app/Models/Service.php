@@ -8,6 +8,7 @@ use App\Support\Money;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -61,6 +62,16 @@ class Service extends Model
     }
 
     /**
+     * Every category this service is listed under, including the primary category.
+     *
+     * @return BelongsToMany<ServiceCategory, $this>
+     */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(ServiceCategory::class, 'service_service_category')->orderBy('name');
+    }
+
+    /**
      * @return HasMany<ServiceImage, $this>
      */
     public function images(): HasMany
@@ -98,6 +109,50 @@ class Service extends Model
     public function scopeOrdered(Builder $query): void
     {
         $query->orderBy('sort_order')->orderBy('name');
+    }
+
+    /**
+     * Services assigned to any of the given categories.
+     *
+     * @param  Builder<self>  $query
+     * @param  list<int>  $categoryIds
+     */
+    public function scopeInCategories(Builder $query, array $categoryIds): void
+    {
+        $query->whereHas('categories', fn (Builder $categories) => $categories->whereKey($categoryIds));
+    }
+
+    /**
+     * Active, and listed under at least one category that is visible in the tree.
+     *
+     * @param  Collection<int, ServiceCategory>|null  $tree
+     */
+    public function isVisibleInCatalog(?Collection $tree = null): bool
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        $tree ??= ServiceCategory::cachedTree();
+        $this->loadMissing('categories');
+
+        return $this->categories->contains(
+            fn (ServiceCategory $category): bool => $category->isVisibleInTree($tree),
+        );
+    }
+
+    /**
+     * Replace the assigned categories and invalidate the public catalog.
+     *
+     * @param  list<int>  $categoryIds
+     * @return array{attached: list<int>, detached: list<int>, updated: list<int>}
+     */
+    public function syncCategories(array $categoryIds): array
+    {
+        $changes = $this->categories()->sync($categoryIds);
+        CatalogCache::flush();
+
+        return $changes;
     }
 
     public function requiresQuote(): bool
@@ -145,7 +200,13 @@ class Service extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn () => CatalogCache::flush());
+        static::saved(function (Service $service): void {
+            if ($service->service_category_id !== null && ($service->wasRecentlyCreated || $service->wasChanged('service_category_id'))) {
+                $service->categories()->syncWithoutDetaching([(int) $service->service_category_id]);
+            }
+
+            CatalogCache::flush();
+        });
         static::deleted(fn () => CatalogCache::flush());
     }
 }

@@ -2,6 +2,7 @@
     $isNew = ! $service->exists;
     $chat = (array) $service->chat_script;
     $selectedAddons = old('addons', $service->exists ? $service->addons->pluck('id')->all() : []);
+    $selectedCategories = array_map(intval(...), (array) old('categories', $service->exists ? $service->categories->pluck('id')->all() : []));
 @endphp
 
 <x-layouts.admin :title="$isNew ? 'New service' : 'Edit '.$service->name">
@@ -15,7 +16,22 @@
                 <div class="grid gap-5 sm:grid-cols-2">
                     <x-ui.input name="name" label="Service name" :value="$service->name" required />
                     <x-ui.input name="slug" label="URL slug" :value="$service->slug" hint="Leave blank to generate from the name. Used in /services/{slug}." />
-                    <x-ui.select name="service_category_id" label="Category" :options="$categoryOptions" :value="$service->service_category_id" placeholder="Choose a category" required />
+                    <div class="space-y-1.5 sm:col-span-2">
+                        <p class="block text-sm font-medium">Categories</p>
+                        <div class="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-line p-3">
+                            @forelse ($categoryOptions as $id => $label)
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" name="categories[]" value="{{ $id }}" @checked(in_array((int) $id, $selectedCategories, true)) class="rounded border-line text-brand-600">
+                                    {{ $label }}
+                                </label>
+                            @empty
+                                <p class="text-sm text-ink-500">No categories yet. <a href="{{ route('admin.categories.create') }}" class="text-admin-accent underline">Create one</a>.</p>
+                            @endforelse
+                        </div>
+                        <p class="text-xs text-ink-500">Select every category this service should appear in. At least one is required.</p>
+                        @error('categories')<p class="text-sm text-red-700">{{ $message }}</p>@enderror
+                        @error('categories.*')<p class="text-sm text-red-700">{{ $message }}</p>@enderror
+                    </div>
                     <x-ui.input name="sort_order" label="Sort order" type="number" min="0" :value="$service->sort_order ?? 0" />
                     <x-ui.textarea name="short_description" label="Short description" :value="$service->short_description" rows="2" required class="sm:col-span-2" hint="Shown on service cards and as the chat introduction." />
                     <x-ui.textarea name="description" label="Detailed description (Markdown)" :value="$service->description" rows="6" class="sm:col-span-2" />
