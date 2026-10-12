@@ -31,6 +31,8 @@ class ImageUploader
         $image = $this->constrain($image);
 
         ob_start();
+        imagealphablending($image, false);
+        imagesavealpha($image, true);
         imagewebp($image, null, 82);
         $webp = (string) ob_get_clean();
         imagedestroy($image);

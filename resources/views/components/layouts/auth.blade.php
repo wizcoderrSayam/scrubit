@@ -11,8 +11,8 @@
                 <x-site.logo class="h-12 w-auto" :alt="$business['business.name'].' home'" />
             </a>
 
-            <div class="w-full max-w-md rounded-2xl border border-brand-100 bg-white p-6 shadow-sm sm:p-8">
-                <h1 class="text-2xl font-semibold">{{ $heading }}</h1>
+            <div class="w-full max-w-md rounded-[22px] border border-brand-100 bg-white p-6 sm:p-8">
+                <h1 class="text-2xl font-extrabold tracking-tight">{{ $heading }}</h1>
                 @if ($subheading)
                     <p class="mt-2 text-sm text-ink-500">{{ $subheading }}</p>
                 @endif

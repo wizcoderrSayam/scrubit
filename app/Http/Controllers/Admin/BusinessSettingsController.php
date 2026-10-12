@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateBusinessSettingsRequest;
+use App\Services\ImageUploader;
 use App\Services\SettingsService;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,7 @@ use Throwable;
 
 class BusinessSettingsController extends Controller
 {
-    public function __construct(private SettingsService $settings) {}
+    public function __construct(private SettingsService $settings, private ImageUploader $images) {}
 
     /**
      * Show the business settings form.
@@ -44,9 +45,37 @@ class BusinessSettingsController extends Controller
             $values['mail.password'] = Crypt::encryptString($password);
         }
 
+        $values += $this->brandImageSettings($request);
+
         $this->settings->set($values);
 
         return to_route('admin.settings.business.edit')->with('status', 'settings-saved');
+    }
+
+    /**
+     * Store, replace or remove the logo and favicon, returning only the settings that changed.
+     *
+     * @return array<string, string|null>
+     */
+    private function brandImageSettings(UpdateBusinessSettingsRequest $request): array
+    {
+        $changes = [];
+
+        foreach (['logo' => 'brand.logo', 'favicon' => 'brand.favicon'] as $field => $key) {
+            $current = $this->settings->get($key);
+
+            if ($request->hasFile($field)) {
+                $changes[$key] = $this->images->store($request->file($field), 'brand');
+            } elseif ($request->boolean("remove_{$field}")) {
+                $changes[$key] = null;
+            } else {
+                continue;
+            }
+
+            $this->images->delete(is_string($current) ? $current : null);
+        }
+
+        return $changes;
     }
 
     /**

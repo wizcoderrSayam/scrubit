@@ -2,7 +2,7 @@
     :title="$category->seo_title ?: $category->name.' cleaning services'"
     :description="$category->seo_description ?: ($category->description ?: 'Browse '.$category->name.' cleaning services.')"
 >
-    <section class="border-b border-brand-100">
+    <section class="bg-brand-50/60">
         <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
             <nav aria-label="Breadcrumb" class="text-sm text-ink-500">
                 <a href="{{ route('services.index') }}" class="hover:text-brand-700">Services</a>
@@ -12,7 +12,7 @@
                 @endforeach
                 <span aria-hidden="true">/</span> {{ $category->name }}
             </nav>
-            <h1 class="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">{{ $category->name }}</h1>
+            <h1 class="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">{{ $category->name }}</h1>
             @if ($category->description)
                 <p class="mt-3 max-w-2xl text-lg text-ink-700">{{ $category->description }}</p>
             @endif
@@ -33,7 +33,7 @@
             </nav>
         @endif
         @if ($services->isEmpty())
-            <p class="rounded-2xl border border-dashed border-brand-200 p-10 text-center text-ink-700">There are no services in this category yet.</p>
+            <p class="rounded-[22px] border border-dashed border-brand-200 p-10 text-center text-ink-700">There are no services in this category yet.</p>
         @else
             <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($services as $service)

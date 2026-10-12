@@ -4,9 +4,9 @@
         <div class="flex flex-wrap items-end justify-between gap-3">
             <div>
                 @if ($depth === 0)
-                    <h2 id="category-{{ $category->id }}" class="text-2xl font-semibold">{{ $category->name }}</h2>
+                    <h2 id="category-{{ $category->id }}" class="text-2xl font-extrabold">{{ $category->name }}</h2>
                 @else
-                    <h3 id="category-{{ $category->id }}" class="text-xl font-semibold">{{ $category->name }}</h3>
+                    <h3 id="category-{{ $category->id }}" class="text-xl font-bold">{{ $category->name }}</h3>
                 @endif
                 @if ($category->description)
                     <p class="mt-1 text-ink-700">{{ $category->description }}</p>

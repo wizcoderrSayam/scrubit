@@ -7,7 +7,7 @@
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
             <div>
-                <h1 class="text-2xl font-semibold">Review your booking</h1>
+                <h1 class="text-2xl font-extrabold">Review your booking</h1>
                 <p class="mt-1 text-ink-700">Check everything below. You can edit any section before continuing.</p>
             </div>
 

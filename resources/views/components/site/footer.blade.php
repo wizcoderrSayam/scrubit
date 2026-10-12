@@ -9,7 +9,7 @@
     ]);
 @endphp
 
-<footer class="mt-auto bg-ink-900 text-slate-300">
+<footer class="mt-auto bg-brand-900 text-brand-200">
     <div class="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
         <div class="space-y-3">
             <p class="font-display text-lg font-semibold text-white">{{ $business['business.name'] }}</p>
@@ -51,8 +51,8 @@
             </div>
         @endif
     </div>
-    <div class="border-t border-white/10">
-        <p class="mx-auto max-w-7xl px-4 py-5 text-xs text-slate-400 sm:px-6 lg:px-8">
+    <div class="border-t border-white/15">
+        <p class="mx-auto max-w-7xl px-4 py-5 text-xs text-brand-200 sm:px-6 lg:px-8">
             &copy; {{ now()->year }} {{ $business['business.name'] }}. All rights reserved.
         </p>
     </div>

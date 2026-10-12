@@ -3,7 +3,7 @@
 <x-layouts.booking title="Payment" :step="4">
     <div class="mx-auto max-w-2xl space-y-6">
         <div>
-            <h1 class="text-2xl font-semibold">Secure payment</h1>
+            <h1 class="text-2xl font-extrabold">Secure payment</h1>
             <p class="mt-1 text-ink-700">Booking <span class="font-semibold">{{ $booking->reference }}</span> · {{ $booking->service_name }}</p>
         </div>
 

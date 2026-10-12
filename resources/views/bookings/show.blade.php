@@ -45,7 +45,7 @@
                     </div>
                     <x-ui.badge :status="$status" class="text-sm" />
                 </div>
-                <h1 class="mt-5 text-2xl font-semibold">{{ $heading }}</h1>
+                <h1 class="mt-5 text-2xl font-extrabold">{{ $heading }}</h1>
                 <p class="mt-2 text-ink-700">{{ $intro }}</p>
 
                 @if ($nextSteps)

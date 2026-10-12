@@ -6,7 +6,6 @@
         ['label' => 'Bookings', 'value' => $metrics['total'], 'href' => route('admin.bookings.index'), 'tone' => 2],
         ['label' => 'Pending quotes', 'value' => $metrics['pendingQuotes'], 'href' => route('admin.quotes.index'), 'tone' => 3],
         ['label' => 'Customers', 'value' => $metrics['customers'], 'href' => route('admin.customers.index'), 'tone' => 4],
-        ['label' => 'CMS Pages', 'value' => $metrics['pages'], 'href' => route('admin.pages.index'), 'tone' => 5],
         ['label' => 'Revenue', 'value' => Money::format($metrics['revenueCents'], $currency), 'href' => route('admin.payments.index'), 'tone' => 6],
     ];
     $statuses = [

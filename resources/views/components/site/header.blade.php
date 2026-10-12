@@ -12,7 +12,7 @@
     ];
 @endphp
 
-<header x-data="{ open: false }" class="sticky top-0 z-40 border-b border-brand-100 bg-white/95 backdrop-blur">
+<header x-data="{ open: false }" class="sticky top-0 z-40 border-b border-brand-100 bg-brand-50/90 backdrop-blur-md">
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:shadow">
         Skip to content
     </a>

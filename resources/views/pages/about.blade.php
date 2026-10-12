@@ -1,8 +1,8 @@
 <x-layouts.public :title="$page->seo_title ?: $page->title" :description="$page->seo_description">
-    <section class="border-b border-brand-100">
+    <section class="bg-brand-50/60">
         <div class="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-20">
             <p class="text-sm font-medium text-brand-700">About Us</p>
-            <h1 class="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">{{ $page->title }}</h1>
+            <h1 class="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">{{ $page->title }}</h1>
         </div>
     </section>
 

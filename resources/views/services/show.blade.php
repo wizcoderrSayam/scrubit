@@ -24,7 +24,7 @@
 >
     <script type="application/ld+json">@json($structuredData, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG)</script>
 
-    <section class="border-b border-brand-100">
+    <section class="bg-brand-50/60">
         <div class="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-2 lg:px-8">
             <div>
                 <nav aria-label="Breadcrumb" class="text-sm text-ink-500">
@@ -32,7 +32,7 @@
                     <span aria-hidden="true">/</span>
                     <a href="{{ route('services.category', $service->category) }}" class="hover:text-brand-700">{{ $service->category->name }}</a>
                 </nav>
-                <h1 class="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">{{ $service->name }}</h1>
+                <h1 class="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">{{ $service->name }}</h1>
                 <p class="mt-4 text-lg leading-relaxed text-ink-700">{{ $service->short_description }}</p>
                 <dl class="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm">
                     <div>
@@ -100,7 +100,7 @@
             @endif
 
             @if ($service->instructions)
-                <section class="rounded-2xl bg-brand-50 p-6">
+                <section class="rounded-[22px] bg-brand-50 p-6">
                     <h2 class="text-lg font-semibold">Before your visit</h2>
                     <p class="mt-2 whitespace-pre-line text-sm text-ink-700">{{ $service->instructions }}</p>
                 </section>
@@ -119,7 +119,7 @@
         </div>
 
         <aside class="space-y-6">
-            <div class="rounded-2xl border border-brand-100 bg-white p-6 lg:sticky lg:top-24">
+            <div class="rounded-[22px] border border-brand-100 bg-white p-6 lg:sticky lg:top-24">
                 <h2 class="text-lg font-semibold">Ready to book?</h2>
                 <p class="mt-2 text-sm text-ink-700">Describe your space and priorities in a quick chat. We confirm the price before you pay.</p>
                 @if ($service->addons->isNotEmpty())

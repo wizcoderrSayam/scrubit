@@ -1,7 +1,7 @@
 <x-layouts.public title="Saved addresses" :noindex="true">
     <div class="mx-auto max-w-4xl space-y-8 px-4 py-10 sm:px-6">
         <div>
-            <h1 class="text-3xl font-semibold">Saved addresses</h1>
+            <h1 class="text-3xl font-extrabold">Saved addresses</h1>
             <p class="mt-1 text-ink-500">Your default address is filled in automatically when you book.</p>
         </div>
 

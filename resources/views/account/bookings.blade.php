@@ -2,7 +2,7 @@
     <div class="mx-auto max-w-4xl space-y-8 px-4 py-10 sm:px-6">
         <div class="flex flex-wrap items-end justify-between gap-4">
             <div>
-                <h1 class="text-3xl font-semibold">My bookings</h1>
+                <h1 class="text-3xl font-extrabold">My bookings</h1>
                 <p class="mt-1 text-ink-500">Track quotes, payments and upcoming visits.</p>
             </div>
             <x-ui.button :href="route('services.index')">New booking</x-ui.button>
@@ -24,7 +24,7 @@
         @endif
 
         @if ($bookings->isEmpty())
-            <div class="rounded-2xl border border-dashed border-brand-200 p-10 text-center">
+            <div class="rounded-[22px] border border-dashed border-brand-200 p-10 text-center">
                 <p class="font-semibold">You have no bookings yet.</p>
                 <p class="mt-1 text-sm text-ink-700">Choose a service to get started.</p>
             </div>
@@ -32,7 +32,7 @@
             <ul class="space-y-4">
                 @foreach ($bookings as $booking)
                     <li>
-                        <a href="{{ route('bookings.show', $booking) }}" class="block rounded-2xl border border-brand-100 bg-white p-5 transition hover:border-brand-300">
+                        <a href="{{ route('bookings.show', $booking) }}" class="block rounded-[22px] border border-brand-100 bg-white p-5 transition hover:border-brand-300">
                             <div class="flex flex-wrap items-center justify-between gap-3">
                                 <div>
                                     <p class="font-semibold">{{ $booking->service_name }}</p>

@@ -10,7 +10,7 @@
 
 <x-layouts.booking :title="'Customize '.$service->name" :step="2">
     <div x-data="bookingChat(@js($chat))" class="grid gap-6 lg:grid-cols-3">
-        <section class="flex min-h-[32rem] flex-col overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-xs lg:col-span-2" aria-labelledby="chat-heading">
+        <section class="flex min-h-[32rem] flex-col overflow-hidden rounded-[22px] border border-brand-100 bg-white shadow-xs lg:col-span-2" aria-labelledby="chat-heading">
             <header class="border-b border-brand-100 px-5 py-4">
                 <h1 id="chat-heading" class="text-xl font-semibold">{{ $service->name }}</h1>
                 <p class="mt-1 text-sm text-ink-700">{{ $service->short_description }}</p>
@@ -24,7 +24,7 @@
             <div x-ref="log" class="flex-1 space-y-4 overflow-y-auto bg-brand-50/50 px-4 py-5 sm:px-5" role="log" aria-live="polite" aria-label="Conversation" style="max-height: 32rem">
                 <template x-for="message in messages" :key="message.id">
                     <div class="flex" :class="message.sender === 'customer' ? 'justify-end' : 'justify-start'">
-                        <div class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-xs"
+                        <div class="max-w-[85%] rounded-[22px] px-4 py-2.5 text-sm leading-relaxed shadow-xs"
                             :class="message.sender === 'customer'
                                 ? 'rounded-br-md bg-brand-600 text-white'
                                 : (message.sender === 'system' ? 'bg-amber-50 text-amber-900' : 'rounded-bl-md bg-white text-ink-900')">
@@ -34,7 +34,7 @@
                     </div>
                 </template>
                 <div x-show="sending" x-cloak class="flex justify-start" aria-hidden="true">
-                    <div class="rounded-2xl bg-white px-4 py-3 text-sm text-ink-500 shadow-xs">Typing…</div>
+                    <div class="rounded-[22px] bg-white px-4 py-3 text-sm text-ink-500 shadow-xs">Typing…</div>
                 </div>
             </div>
 
@@ -171,7 +171,7 @@
         </section>
 
         <aside class="space-y-4 lg:sticky lg:top-24 lg:self-start">
-            <div class="rounded-2xl border border-brand-100 bg-white p-5">
+            <div class="rounded-[22px] border border-brand-100 bg-white p-5">
                 <h2 class="font-semibold">Your booking details</h2>
                 <ol class="mt-4 space-y-2 text-sm">
                     @foreach ($stepLabels as $key => $label)
@@ -195,7 +195,7 @@
                 <p x-show="! state.complete" class="mt-2 text-xs text-ink-500">Answer the remaining questions to continue.</p>
             </div>
 
-            <div class="rounded-2xl border border-brand-100 bg-white p-5 text-sm text-ink-700">
+            <div class="rounded-[22px] border border-brand-100 bg-white p-5 text-sm text-ink-700">
                 <p class="font-semibold text-ink-900">How pricing works</p>
                 <p class="mt-1">{{ $service->requiresQuote() ? 'This service is priced by quote. We review your details and send a price for approval before you pay anything.' : 'This service has a set price. You will see the full breakdown before paying.' }}</p>
             </div>

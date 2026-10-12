@@ -15,16 +15,8 @@
         Skip to content
     </a>
 
-    <div class="border-b border-brand-100 bg-white">
-        <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-end gap-x-5 gap-y-1 px-4 py-2 text-xs text-ink-500 sm:px-6 lg:px-8">
-            <a href="{{ $phoneHref }}" class="font-medium text-ink-700 hover:text-brand-800">{{ $phone }}</a>
-            <span class="text-brand-200" aria-hidden="true">/</span>
-            <a href="mailto:{{ $business['business.email'] }}" class="hover:text-brand-800">{{ $business['business.email'] }}</a>
-        </div>
-    </div>
-
-    <header x-data="{ open: false }" class="border-b border-brand-100 bg-white/95 backdrop-blur">
-        <div class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 sm:px-6 lg:px-8">
+    <header x-data="{ open: false }" class="border-b border-brand-100 bg-brand-50/90 backdrop-blur-md">
+        <div class="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
             <a href="{{ route('home') }}" class="shrink-0">
                 <x-site.logo class="h-9 w-auto sm:h-11" :alt="$business['business.name'].' home'" />
             </a>

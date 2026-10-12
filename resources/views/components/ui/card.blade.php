@@ -1,6 +1,12 @@
 @props(['title' => null, 'description' => null])
 
-<section {{ $attributes->merge(['class' => 'rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6']) }}>
+@php
+    $cardClasses = request()->routeIs('admin.*')
+        ? 'rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6'
+        : 'rounded-[22px] border border-brand-100 bg-white p-5 sm:p-7';
+@endphp
+
+<section {{ $attributes->merge(['class' => $cardClasses]) }}>
     @if ($title)
         <header class="mb-5">
             <h2 class="text-lg font-semibold">{{ $title }}</h2>

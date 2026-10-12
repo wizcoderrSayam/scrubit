@@ -25,7 +25,7 @@
 
     <div @class(['flex items-stretch' => $prefix])>
         @if ($prefix)
-            <span class="inline-flex items-center rounded-l-lg border border-r-0 border-line bg-slate-50 px-3 text-sm text-ink-500">{{ $prefix }}</span>
+            <span class="inline-flex items-center rounded-l-xl border border-r-0 border-line bg-slate-50 px-3 text-sm text-ink-500">{{ $prefix }}</span>
         @endif
         <input
             id="{{ $id }}"
@@ -36,10 +36,10 @@
             @if ($error) aria-invalid="true" @endif
             {{ $attributes->except(['class', 'id'])->class([
                 'block w-full border px-3 py-2.5 text-sm text-ink-900 shadow-xs placeholder:text-ink-500 focus:outline-2 focus:outline-offset-0 focus:outline-brand-600',
-                'rounded-lg' => ! $prefix,
-                'rounded-r-lg' => $prefix,
+                'rounded-xl' => ! $prefix,
+                'rounded-r-xl' => $prefix,
                 'border-red-600' => $error,
-                'border-line' => ! $error,
+                'border-line focus:border-brand-600' => ! $error,
             ]) }}
         >
     </div>

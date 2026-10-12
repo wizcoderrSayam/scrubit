@@ -36,6 +36,8 @@ return [
         'business.email' => env('BUSINESS_EMAIL', 'Info@scrubit.ca'),
         'business.location' => env('BUSINESS_LOCATION', 'Canada'),
         'business.currency' => env('BUSINESS_CURRENCY', 'CAD'),
+        'brand.logo' => null,
+        'brand.favicon' => null,
         'mail.host' => env('MAIL_HOST', 'smtp.gmail.com'),
         'mail.port' => (int) env('MAIL_PORT', 587),
         'mail.username' => env('MAIL_USERNAME', ''),

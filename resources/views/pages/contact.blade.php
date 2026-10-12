@@ -1,9 +1,9 @@
 @php($phoneHref = 'tel:'.preg_replace('/[^0-9+]/', '', $business['business.phone']))
 
 <x-layouts.public title="Contact us" description="Get in touch with {{ $business['business.name'] }} by phone, email or our contact form.">
-    <section class="border-b border-brand-100">
+    <section class="bg-brand-50/60">
         <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-            <h1 class="text-4xl font-semibold tracking-tight sm:text-5xl">Contact us</h1>
+            <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl">Contact us</h1>
             <p class="mt-4 max-w-2xl text-lg text-ink-700">Questions about a service or an existing booking? We are happy to help.</p>
         </div>
     </section>

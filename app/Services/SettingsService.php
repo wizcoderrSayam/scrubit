@@ -6,6 +6,7 @@ use App\Models\BusinessSetting;
 use App\Support\Money;
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
 class SettingsService
@@ -84,6 +85,16 @@ class SettingsService
             Money::formatCompact((int) $this->get('addon_note.rate_cents', 0), (string) $this->get('business.currency', 'CAD')),
             (string) $this->get('addon_note.text', ''),
         );
+    }
+
+    /**
+     * Public URL of an uploaded brand image ('logo' or 'favicon'), or null to use the bundled default.
+     */
+    public function brandImageUrl(string $image): ?string
+    {
+        $path = $this->get("brand.{$image}");
+
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     public function flush(): void

@@ -19,9 +19,9 @@
         @if ($hint || $error) aria-describedby="{{ trim(($hint ? $id.'-hint ' : '').($error ? $id.'-error' : '')) }}" @endif
         @if ($error) aria-invalid="true" @endif
         {{ $attributes->except(['class', 'id'])->class([
-            'block w-full rounded-lg border px-3 py-2.5 text-sm text-ink-900 shadow-xs focus:outline-2 focus:outline-offset-0 focus:outline-brand-600',
+            'block w-full rounded-xl border px-3 py-2.5 text-sm text-ink-900 shadow-xs focus:outline-2 focus:outline-offset-0 focus:outline-brand-600',
             'border-red-600' => $error,
-            'border-line' => ! $error,
+            'border-line focus:border-brand-600' => ! $error,
         ]) }}
     >{{ old($name, $value) }}</textarea>
     @if ($hint)
